@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { useTheme } from '@/hooks/useTheme';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import AppSidebar from './AppSidebar';
 import TopBar from './TopBar';

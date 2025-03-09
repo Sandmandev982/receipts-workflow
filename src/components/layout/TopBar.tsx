@@ -7,7 +7,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useTheme } from '@/hooks/useTheme';
 
 const TopBar: React.FC = () => {
-  const { theme, setTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   
   return (
     <header className="border-b border-border h-16 flex items-center px-4 bg-background">
@@ -29,7 +29,8 @@ const TopBar: React.FC = () => {
           variant="ghost"
           size="icon"
           className="rounded-full"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
         >
           {theme === 'dark' ? (
             <Sun className="h-5 w-5" />

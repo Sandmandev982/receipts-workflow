@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -8,7 +7,6 @@ import TaskList from '@/components/tasks/TaskList';
 import TaskEditDialog from '@/components/tasks/TaskEditDialog';
 import ProgressChart from '@/components/dashboard/ProgressChart';
 import { Task } from '@/components/tasks/TaskCard';
-import { ThemeProvider } from '@/hooks/useTheme';
 
 // Mock data for initial tasks
 const initialTasks: Task[] = [
@@ -130,60 +128,58 @@ const Index = () => {
   };
 
   return (
-    <ThemeProvider>
-      <Layout>
-        <div className="space-y-6">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
+    <Layout>
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        
+        <SummaryCards tasks={taskCounts} />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ProgressChart data={chartData} />
           
-          <SummaryCards tasks={taskCounts} />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ProgressChart data={chartData} />
-            
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Recent Activity</h2>
-              <div className="space-y-2">
-                {tasks
-                  .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime())
-                  .slice(0, 3)
-                  .map(task => (
-                    <div key={task.id} className="bg-card p-3 rounded-md border border-border flex justify-between items-center">
-                      <div>
-                        <h3 className="font-medium">{task.title}</h3>
-                        <p className="text-sm text-muted-foreground">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
-                      </div>
-                      <div className={`px-2 py-1 rounded-full text-xs ${
-                        task.status === 'complete' ? 'bg-receipts-success/10 text-receipts-success' :
-                        task.status === 'in-progress' ? 'bg-receipts-blue/10 text-receipts-blue' :
-                        'bg-receipts-yellow/10 text-receipts-yellow'
-                      }`}>
-                        {task.status.replace('-', ' ')}
-                      </div>
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Recent Activity</h2>
+            <div className="space-y-2">
+              {tasks
+                .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime())
+                .slice(0, 3)
+                .map(task => (
+                  <div key={task.id} className="bg-card p-3 rounded-md border border-border flex justify-between items-center">
+                    <div>
+                      <h3 className="font-medium">{task.title}</h3>
+                      <p className="text-sm text-muted-foreground">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
                     </div>
-                  ))
-                }
-              </div>
+                    <div className={`px-2 py-1 rounded-full text-xs ${
+                      task.status === 'complete' ? 'bg-receipts-success/10 text-receipts-success' :
+                      task.status === 'in-progress' ? 'bg-receipts-blue/10 text-receipts-blue' :
+                      'bg-receipts-yellow/10 text-receipts-yellow'
+                    }`}>
+                      {task.status.replace('-', ' ')}
+                    </div>
+                  </div>
+                ))
+              }
             </div>
           </div>
-          
-          <TaskList
-            title="All Tasks"
-            tasks={tasks}
-            onAddTask={handleAddTask}
-            onEditTask={handleEditTask}
-            onDeleteTask={handleDeleteTask}
-            onStatusChange={handleStatusChange}
-          />
-          
-          <TaskEditDialog
-            task={editingTask}
-            open={isEditDialogOpen}
-            onOpenChange={setIsEditDialogOpen}
-            onSubmit={handleUpdateTask}
-          />
         </div>
-      </Layout>
-    </ThemeProvider>
+        
+        <TaskList
+          title="All Tasks"
+          tasks={tasks}
+          onAddTask={handleAddTask}
+          onEditTask={handleEditTask}
+          onDeleteTask={handleDeleteTask}
+          onStatusChange={handleStatusChange}
+        />
+        
+        <TaskEditDialog
+          task={editingTask}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onSubmit={handleUpdateTask}
+        />
+      </div>
+    </Layout>
   );
 };
 
