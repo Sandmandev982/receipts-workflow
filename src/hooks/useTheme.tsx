@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ThemeProvider as NextThemesProvider, useTheme as useNextTheme } from 'next-themes';
+import { ThemeProvider as NextThemesProvider } from 'next-themes';
 
 interface ThemeContextProps {
   theme: string;
@@ -34,11 +34,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setThemeState] = useState<string>(getInitialTheme());
 
   useEffect(() => {
-    if (isLocalStorageAvailable()) {
-      localStorage.setItem('theme', theme);
+    try {
+      if (isLocalStorageAvailable()) {
+        localStorage.setItem('theme', theme);
+      }
+      
+      // Apply theme class to document
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(theme);
+      
+      // Set data-theme attribute for components that might use it
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (error) {
+      console.error('Error applying theme:', error);
     }
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(theme);
   }, [theme]);
 
   const setTheme = (newTheme: string) => {
