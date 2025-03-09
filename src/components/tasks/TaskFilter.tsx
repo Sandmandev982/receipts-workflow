@@ -16,7 +16,7 @@ export interface TaskFilters {
   dueDate: string;
 }
 
-interface TaskFilterProps {
+export interface TaskFilterProps {
   onSearch: (term: string) => void;
   onFilterChange: (newFilters: TaskFilters) => void;
   onClearFilters: () => void;
