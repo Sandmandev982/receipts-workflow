@@ -7,23 +7,87 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+
+export interface TaskFilters {
+  status: string[];
+  priority: string[];
+  tags: string[];
+  dueDate: string;
+}
 
 interface TaskFilterProps {
-  filters: {
-    search: string;
-    status: string;
-    priority: string;
-    dueDate: Date | null;
-  };
-  onFilterChange: (field: string, value: any) => void;
-  onResetFilters: () => void;
+  onSearch: (term: string) => void;
+  onFilterChange: (newFilters: TaskFilters) => void;
+  onClearFilters: () => void;
+  availableTags: string[];
 }
 
 const TaskFilter: React.FC<TaskFilterProps> = ({
-  filters,
+  onSearch,
   onFilterChange,
-  onResetFilters,
+  onClearFilters,
+  availableTags,
 }) => {
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [filters, setFilters] = React.useState<TaskFilters>({
+    status: [],
+    priority: [],
+    tags: [],
+    dueDate: 'all',
+  });
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    onSearch(e.target.value);
+  };
+
+  const handleStatusChange = (value: string) => {
+    const newStatus = value ? [value] : [];
+    const newFilters = { ...filters, status: newStatus };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  };
+
+  const handlePriorityChange = (value: string) => {
+    const newPriority = value ? [value] : [];
+    const newFilters = { ...filters, priority: newPriority };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  };
+
+  const handleDueDateChange = (value: string) => {
+    const newFilters = { ...filters, dueDate: value };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  };
+
+  const handleTagSelect = (tag: string) => {
+    const newTags = filters.tags.includes(tag)
+      ? filters.tags.filter(t => t !== tag)
+      : [...filters.tags, tag];
+    const newFilters = { ...filters, tags: newTags };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  };
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setFilters({
+      status: [],
+      priority: [],
+      tags: [],
+      dueDate: 'all',
+    });
+    onClearFilters();
+  };
+
+  const hasActiveFilters = searchTerm || 
+    filters.status.length > 0 || 
+    filters.priority.length > 0 || 
+    filters.tags.length > 0 || 
+    filters.dueDate !== 'all';
+
   return (
     <div className="mb-6 space-y-4">
       <div className="flex flex-col sm:flex-row gap-3">
@@ -32,15 +96,15 @@ const TaskFilter: React.FC<TaskFilterProps> = ({
           <Input
             placeholder="Search tasks..."
             className="pl-9"
-            value={filters.search}
-            onChange={(e) => onFilterChange('search', e.target.value)}
+            value={searchTerm}
+            onChange={handleSearchChange}
           />
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Select
-            value={filters.status}
-            onValueChange={(value) => onFilterChange('status', value)}
+            value={filters.status[0] || ''}
+            onValueChange={handleStatusChange}
           >
             <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="Status" />
@@ -54,8 +118,8 @@ const TaskFilter: React.FC<TaskFilterProps> = ({
           </Select>
           
           <Select
-            value={filters.priority}
-            onValueChange={(value) => onFilterChange('priority', value)}
+            value={filters.priority[0] || ''}
+            onValueChange={handlePriorityChange}
           >
             <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="Priority" />
@@ -68,43 +132,45 @@ const TaskFilter: React.FC<TaskFilterProps> = ({
             </SelectContent>
           </Select>
           
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[130px] justify-start text-left font-normal">
-                <Calendar className="mr-2 h-4 w-4" />
-                {filters.dueDate ? format(filters.dueDate, 'PPP') : <span>Due Date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <CalendarComponent
-                mode="single"
-                selected={filters.dueDate || undefined}
-                onSelect={(date) => onFilterChange('dueDate', date)}
-                initialFocus
-              />
-              {filters.dueDate && (
-                <div className="p-3 border-t">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onFilterChange('dueDate', null)}
-                    className="w-full"
-                  >
-                    Clear Date
-                  </Button>
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
+          <Select
+            value={filters.dueDate}
+            onValueChange={handleDueDateChange}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="Due Date" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Dates</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="tomorrow">Tomorrow</SelectItem>
+              <SelectItem value="this-week">This Week</SelectItem>
+              <SelectItem value="this-month">This Month</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       
-      {(filters.search || filters.status || filters.priority || filters.dueDate) && (
+      {availableTags.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {availableTags.map(tag => (
+            <Badge
+              key={tag}
+              variant={filters.tags.includes(tag) ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => handleTagSelect(tag)}
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )}
+      
+      {hasActiveFilters && (
         <div className="flex justify-end">
           <Button
             variant="ghost"
             size="sm"
-            onClick={onResetFilters}
+            onClick={resetFilters}
             className="text-muted-foreground"
           >
             <Filter className="mr-2 h-4 w-4" />

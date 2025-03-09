@@ -76,7 +76,8 @@ const TaskList: React.FC<TaskListProps> = ({
       
       // Due date filter
       if (filters.dueDate !== 'all') {
-        const dueDate = new Date(task.dueDate);
+        const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+        if (!dueDate) return filters.dueDate === 'all';
         
         switch (filters.dueDate) {
           case 'today':
@@ -108,9 +109,9 @@ const TaskList: React.FC<TaskListProps> = ({
       dueDate: data.dueDate,
       dueTime: data.dueTime,
       reminderSet: data.reminderEnabled,
-      reminderTime: data.reminderEnabled ? data.reminderTime : undefined,
-      progress: data.progress,
-      tags: tags.length > 0 ? tags : undefined,
+      reminderTime: data.reminderEnabled ? data.reminderTime : null,
+      progress: parseInt(data.progress, 10),
+      tags: tags.length > 0 ? tags : null,
     });
     setOpen(false);
   };

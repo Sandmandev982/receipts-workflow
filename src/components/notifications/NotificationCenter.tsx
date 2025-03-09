@@ -23,7 +23,7 @@ const NotificationCenter: React.FC = () => {
       fetchNotifications();
       
       // Set up real-time subscription for new notifications
-      const subscription = supabase
+      const channel = supabase
         .channel('notifications_changes')
         .on('postgres_changes', {
           event: 'INSERT',
@@ -52,7 +52,7 @@ const NotificationCenter: React.FC = () => {
         .subscribe();
 
       return () => {
-        subscription.unsubscribe();
+        supabase.removeChannel(channel);
       };
     }
   }, [user]);
