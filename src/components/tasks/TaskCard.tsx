@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CalendarClock, Bell, Clock, MoreVertical, AlertCircle, CheckCircle2, Clock3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -86,6 +85,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const getDateStatusIndicator = () => {
     const dueDate = new Date(task.dueDate);
     
+    // Fix: Use task.status !== 'complete' for all condition checks
     if (isPast(dueDate) && task.status !== 'complete') {
       return (
         <div className="flex items-center gap-1 text-xs text-destructive">
@@ -112,6 +112,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
     return null;
   };
 
+  
   const formatDate = (date: Date) => {
     return format(date, 'MMM d, yyyy');
   };
