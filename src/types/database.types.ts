@@ -7,6 +7,11 @@ export interface TaskRow {
   priority: 'high' | 'medium' | 'low';
   status: 'pending' | 'in-progress' | 'complete';
   due_date: string | null;
+  due_time: string | null;
+  reminder_set: boolean;
+  reminder_time: string | null;
+  progress: number;
+  tags: string[] | null;
   created_at: string;
   updated_at: string;
 }

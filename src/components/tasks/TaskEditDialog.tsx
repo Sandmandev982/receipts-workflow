@@ -23,6 +23,9 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
   onSubmit,
 }) => {
   const handleSubmit = (data: any) => {
+    // Process the tags into an array if they exist
+    const tags = data.tags ? data.tags.split(',').map((tag: string) => tag.trim()) : [];
+    
     onSubmit({
       ...(task?.id ? { id: task.id } : {}),
       title: data.title,
@@ -30,14 +33,19 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
       priority: data.priority,
       status: data.status,
       dueDate: data.dueDate,
+      dueTime: data.dueTime,
+      reminderSet: data.reminderEnabled,
+      reminderTime: data.reminderEnabled ? data.reminderTime : undefined,
+      progress: data.progress,
       assignedTo: task?.assignedTo,
+      tags: tags.length > 0 ? tags : undefined,
     });
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{task?.id ? 'Edit Task' : 'Add New Task'}</DialogTitle>
         </DialogHeader>

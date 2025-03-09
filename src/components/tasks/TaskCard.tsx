@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { CalendarClock, Clock, MoreVertical } from 'lucide-react';
+import { CalendarClock, Bell, Clock, MoreVertical, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { format } from 'date-fns';
 
 export interface Task {
   id: string;
@@ -19,11 +20,16 @@ export interface Task {
   priority: 'high' | 'medium' | 'low';
   status: 'pending' | 'in-progress' | 'complete';
   dueDate: Date;
+  dueTime?: string;
+  reminderSet?: boolean;
+  reminderTime?: string;
+  progress?: number;
   assignedTo?: {
     name: string;
     avatar?: string;
     initials: string;
   };
+  tags?: string[];
 }
 
 interface TaskCardProps {
@@ -31,13 +37,17 @@ interface TaskCardProps {
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: Task['status']) => void;
+  onSetReminder?: (id: string, reminderTime: string) => void;
+  onUpdateProgress?: (id: string, progress: number) => void;
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ 
   task, 
   onEdit,
   onDelete,
-  onStatusChange 
+  onStatusChange,
+  onSetReminder,
+  onUpdateProgress
 }) => {
   const getPriorityClass = (priority: Task['priority']) => {
     switch (priority) {
@@ -62,11 +72,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    }).format(date);
+    return format(date, 'MMM d, yyyy');
   };
 
   return (
@@ -84,6 +90,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
             <DropdownMenuItem onClick={() => onStatusChange(task.id, 'pending')}>Mark as Pending</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onStatusChange(task.id, 'in-progress')}>Mark as In Progress</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onStatusChange(task.id, 'complete')}>Mark as Complete</DropdownMenuItem>
+            {onSetReminder && (
+              <DropdownMenuItem onClick={() => onSetReminder(task.id, '1 hour')}>
+                Set Reminder (1 hour before)
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem 
               onClick={() => onDelete(task.id)}
               className="text-destructive focus:text-destructive"
@@ -96,13 +107,46 @@ const TaskCard: React.FC<TaskCardProps> = ({
       
       <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{task.description}</p>
       
+      {task.progress !== undefined && (
+        <div className="mb-3">
+          <div className="flex justify-between text-xs mb-1">
+            <span>Progress</span>
+            <span>{task.progress}%</span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-2">
+            <div 
+              className="bg-primary h-2 rounded-full" 
+              style={{ width: `${task.progress}%` }}
+            ></div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <CalendarClock className="h-4 w-4" />
           <span>{formatDate(task.dueDate)}</span>
+          {task.dueTime && <span className="text-xs">{task.dueTime}</span>}
         </div>
         {getStatusBadge(task.status)}
       </div>
+      
+      {task.reminderSet && (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
+          <Bell className="h-3 w-3" />
+          <span>Reminder: {task.reminderTime}</span>
+        </div>
+      )}
+
+      {task.tags && task.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {task.tags.map(tag => (
+            <Badge key={tag} variant="secondary" className="text-xs">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )}
       
       {task.assignedTo && (
         <div className="flex justify-between items-center">

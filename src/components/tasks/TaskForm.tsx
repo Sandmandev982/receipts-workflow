@@ -3,13 +3,14 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Clock, BellRing, Tag } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Task } from './TaskCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/components/ui/slider';
 import {
   Form,
   FormControl,
@@ -31,6 +32,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Switch } from '@/components/ui/switch';
 
 const formSchema = z.object({
   title: z.string().min(1, { message: 'Title is required' }),
@@ -38,6 +40,11 @@ const formSchema = z.object({
   priority: z.enum(['high', 'medium', 'low']),
   status: z.enum(['pending', 'in-progress', 'complete']),
   dueDate: z.date(),
+  dueTime: z.string().optional(),
+  reminderEnabled: z.boolean().default(false),
+  reminderTime: z.string().optional(),
+  progress: z.number().min(0).max(100).default(0),
+  tags: z.string().optional(),
 });
 
 interface TaskFormProps {
@@ -54,14 +61,27 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
       priority: task.priority,
       status: task.status,
       dueDate: task.dueDate,
+      dueTime: task.dueTime || '',
+      reminderEnabled: task.reminderSet || false,
+      reminderTime: task.reminderTime || '1 hour before',
+      progress: task.progress || 0,
+      tags: task.tags ? task.tags.join(', ') : '',
     } : {
       title: '',
       description: '',
       priority: 'medium',
       status: 'pending',
       dueDate: new Date(),
+      dueTime: '',
+      reminderEnabled: false,
+      reminderTime: '1 hour before',
+      progress: 0,
+      tags: '',
     },
   });
+
+  // Watch the reminderEnabled value to conditionally show the reminder time field
+  const reminderEnabled = form.watch('reminderEnabled');
 
   return (
     <Form {...form}>
@@ -142,45 +162,167 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
           />
         </div>
         
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="dueDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Due Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="dueTime"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Due Time (Optional)</FormLabel>
+                <FormControl>
+                  <div className="flex">
+                    <Input placeholder="e.g., 3:00 PM" {...field} />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon" 
+                      className="ml-2"
+                      onClick={() => {
+                        // Here you could show a time picker component
+                        // For now, we'll just set a default time
+                        field.onChange("12:00 PM");
+                      }}
+                    >
+                      <Clock className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
         <FormField
           control={form.control}
-          name="dueDate"
+          name="tags"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Due Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+            <FormItem>
+              <FormLabel>Tags (comma separated)</FormLabel>
+              <FormControl>
+                <div className="flex">
+                  <Input placeholder="work, important, project" {...field} />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="ml-2"
+                  >
+                    <Tag className="h-4 w-4" />
+                  </Button>
+                </div>
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+        
+        <FormField
+          control={form.control}
+          name="progress"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Progress: {field.value}%</FormLabel>
+              <FormControl>
+                <Slider
+                  defaultValue={[field.value]}
+                  max={100}
+                  step={5}
+                  onValueChange={(vals) => field.onChange(vals[0])}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className="space-y-4 border rounded-md p-4">
+          <FormField
+            control={form.control}
+            name="reminderEnabled"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between">
+                <div className="space-y-0.5">
+                  <FormLabel>Set Reminder</FormLabel>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          
+          {reminderEnabled && (
+            <FormField
+              control={form.control}
+              name="reminderTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Remind me</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value || '1 hour before'}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select when to be reminded" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="5 minutes before">5 minutes before</SelectItem>
+                      <SelectItem value="15 minutes before">15 minutes before</SelectItem>
+                      <SelectItem value="30 minutes before">30 minutes before</SelectItem>
+                      <SelectItem value="1 hour before">1 hour before</SelectItem>
+                      <SelectItem value="3 hours before">3 hours before</SelectItem>
+                      <SelectItem value="1 day before">1 day before</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
         
         <div className="flex justify-end">
           <Button type="submit" className="bg-primary text-primary-foreground">
