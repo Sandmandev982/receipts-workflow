@@ -1,0 +1,122 @@
+
+import React from 'react';
+import { CalendarClock, Clock, MoreVertical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+  status: 'pending' | 'in-progress' | 'complete';
+  dueDate: Date;
+  assignedTo?: {
+    name: string;
+    avatar?: string;
+    initials: string;
+  };
+}
+
+interface TaskCardProps {
+  task: Task;
+  onEdit: (task: Task) => void;
+  onDelete: (id: string) => void;
+  onStatusChange: (id: string, status: Task['status']) => void;
+}
+
+const TaskCard: React.FC<TaskCardProps> = ({ 
+  task, 
+  onEdit,
+  onDelete,
+  onStatusChange 
+}) => {
+  const getPriorityClass = (priority: Task['priority']) => {
+    switch (priority) {
+      case 'high': return 'priority-high';
+      case 'medium': return 'priority-medium';
+      case 'low': return 'priority-low';
+      default: return '';
+    }
+  };
+
+  const getStatusBadge = (status: Task['status']) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline" className="bg-receipts-yellow/10 border-receipts-yellow text-receipts-yellow font-normal">Pending</Badge>;
+      case 'in-progress':
+        return <Badge variant="outline" className="bg-receipts-blue/10 border-receipts-blue text-receipts-blue font-normal">In Progress</Badge>;
+      case 'complete':
+        return <Badge variant="outline" className="bg-receipts-success/10 border-receipts-success text-receipts-success font-normal">Complete</Badge>;
+      default:
+        return null;
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }).format(date);
+  };
+
+  return (
+    <div className={cn('task-card', getPriorityClass(task.priority))}>
+      <div className="flex justify-between items-start mb-3">
+        <h3 className="font-medium text-card-foreground">{task.title}</h3>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onEdit(task)}>Edit</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onStatusChange(task.id, 'pending')}>Mark as Pending</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onStatusChange(task.id, 'in-progress')}>Mark as In Progress</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onStatusChange(task.id, 'complete')}>Mark as Complete</DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => onDelete(task.id)}
+              className="text-destructive focus:text-destructive"
+            >
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      
+      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{task.description}</p>
+      
+      <div className="flex justify-between items-center mb-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CalendarClock className="h-4 w-4" />
+          <span>{formatDate(task.dueDate)}</span>
+        </div>
+        {getStatusBadge(task.status)}
+      </div>
+      
+      {task.assignedTo && (
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={task.assignedTo.avatar} />
+              <AvatarFallback className="text-xs bg-primary text-primary-foreground">{task.assignedTo.initials}</AvatarFallback>
+            </Avatar>
+            <span className="text-sm">{task.assignedTo.name}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TaskCard;
