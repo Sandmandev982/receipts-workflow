@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { v4 as uuidv4 } from 'uuid';
 import Layout from '@/components/layout/Layout';
 import SummaryCards from '@/components/dashboard/SummaryCards';
 import TaskList from '@/components/tasks/TaskList';
@@ -10,6 +9,7 @@ import ProgressChart from '@/components/dashboard/ProgressChart';
 import { Task } from '@/components/tasks/TaskCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { TaskRow } from '@/types/database.types';
 
 const Index = () => {
   const { user } = useAuth();
@@ -33,7 +33,7 @@ const Index = () => {
         if (error) throw error;
         
         // Transform Supabase data to match our Task interface
-        const formattedTasks: Task[] = data.map(task => ({
+        const formattedTasks: Task[] = (data as TaskRow[]).map(task => ({
           id: task.id,
           title: task.title,
           description: task.description || '',
@@ -101,13 +101,14 @@ const Index = () => {
       if (error) throw error;
       
       // Create task object with Supabase data
+      const taskData = data as TaskRow;
       const task: Task = {
-        id: data.id,
-        title: data.title,
-        description: data.description || '',
-        priority: data.priority as Task['priority'],
-        status: data.status as Task['status'],
-        dueDate: new Date(data.due_date),
+        id: taskData.id,
+        title: taskData.title,
+        description: taskData.description || '',
+        priority: taskData.priority as Task['priority'],
+        status: taskData.status as Task['status'],
+        dueDate: new Date(taskData.due_date || Date.now()),
         assignedTo: {
           name: user.email?.split('@')[0] || 'User',
           initials: (user.email?.substring(0, 2) || 'U').toUpperCase(),

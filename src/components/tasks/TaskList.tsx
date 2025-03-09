@@ -14,6 +14,7 @@ interface TaskListProps {
   onEditTask: (task: Task) => void;
   onDeleteTask: (id: string) => void;
   onStatusChange: (id: string, status: Task['status']) => void;
+  loading?: boolean;
 }
 
 const TaskList: React.FC<TaskListProps> = ({
@@ -23,6 +24,7 @@ const TaskList: React.FC<TaskListProps> = ({
   onEditTask,
   onDeleteTask,
   onStatusChange,
+  loading = false,
 }) => {
   const [open, setOpen] = React.useState(false);
   
@@ -57,7 +59,11 @@ const TaskList: React.FC<TaskListProps> = ({
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tasks.length > 0 ? (
+        {loading ? (
+          <div className="col-span-full flex justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        ) : tasks.length > 0 ? (
           tasks.map((task) => (
             <TaskCard
               key={task.id}
