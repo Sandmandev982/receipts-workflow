@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Search, Calendar, Filter } from 'lucide-react';
+import { Search, Calendar, Filter, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,12 +8,24 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export interface TaskFilters {
   status: string[];
   priority: string[];
   tags: string[];
   dueDate: string;
+  assignedTo?: string[];
+  dateRange?: {
+    from: Date | undefined;
+    to: Date | undefined;
+  };
 }
 
 export interface TaskFilterProps {
@@ -21,6 +33,7 @@ export interface TaskFilterProps {
   onFilterChange: (newFilters: TaskFilters) => void;
   onClearFilters: () => void;
   availableTags: string[];
+  teamMembers?: Array<{ id: string; name: string }>;
 }
 
 const TaskFilter: React.FC<TaskFilterProps> = ({
@@ -28,6 +41,7 @@ const TaskFilter: React.FC<TaskFilterProps> = ({
   onFilterChange,
   onClearFilters,
   availableTags,
+  teamMembers = [],
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filters, setFilters] = React.useState<TaskFilters>({
@@ -35,7 +49,13 @@ const TaskFilter: React.FC<TaskFilterProps> = ({
     priority: [],
     tags: [],
     dueDate: 'all',
+    assignedTo: [],
+    dateRange: {
+      from: undefined,
+      to: undefined,
+    },
   });
+  const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = React.useState(false);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -71,6 +91,22 @@ const TaskFilter: React.FC<TaskFilterProps> = ({
     onFilterChange(newFilters);
   };
 
+  const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined }) => {
+    const newFilters = { ...filters, dateRange: range };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  };
+
+  const handleAssigneeSelect = (memberId: string, isChecked: boolean) => {
+    const newAssignees = isChecked
+      ? [...(filters.assignedTo || []), memberId]
+      : (filters.assignedTo || []).filter(id => id !== memberId);
+    
+    const newFilters = { ...filters, assignedTo: newAssignees };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  };
+
   const resetFilters = () => {
     setSearchTerm('');
     setFilters({
@@ -78,6 +114,11 @@ const TaskFilter: React.FC<TaskFilterProps> = ({
       priority: [],
       tags: [],
       dueDate: 'all',
+      assignedTo: [],
+      dateRange: {
+        from: undefined,
+        to: undefined,
+      },
     });
     onClearFilters();
   };
@@ -86,7 +127,9 @@ const TaskFilter: React.FC<TaskFilterProps> = ({
     filters.status.length > 0 || 
     filters.priority.length > 0 || 
     filters.tags.length > 0 || 
-    filters.dueDate !== 'all';
+    filters.dueDate !== 'all' ||
+    (filters.assignedTo && filters.assignedTo.length > 0) ||
+    (filters.dateRange?.from || filters.dateRange?.to);
 
   return (
     <div className="mb-6 space-y-4">
@@ -145,8 +188,62 @@ const TaskFilter: React.FC<TaskFilterProps> = ({
               <SelectItem value="tomorrow">Tomorrow</SelectItem>
               <SelectItem value="this-week">This Week</SelectItem>
               <SelectItem value="this-month">This Month</SelectItem>
+              <SelectItem value="overdue">Overdue</SelectItem>
             </SelectContent>
           </Select>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" className="h-10 w-10">
+                <SlidersHorizontal className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                <h4 className="font-medium">Advanced Filters</h4>
+                
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="date-range">
+                    <AccordionTrigger>Date Range</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="p-2">
+                        <CalendarComponent
+                          mode="range"
+                          selected={filters.dateRange as any}
+                          onSelect={handleDateRangeSelect as any}
+                          className="rounded-md border"
+                        />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                  
+                  {teamMembers.length > 0 && (
+                    <AccordionItem value="assignees">
+                      <AccordionTrigger>Assignees</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-2">
+                          {teamMembers.map(member => (
+                            <div key={member.id} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={`assignee-${member.id}`} 
+                                checked={filters.assignedTo?.includes(member.id)}
+                                onCheckedChange={(checked) => 
+                                  handleAssigneeSelect(member.id, checked as boolean)
+                                }
+                              />
+                              <label htmlFor={`assignee-${member.id}`} className="text-sm">
+                                {member.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  )}
+                </Accordion>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
       

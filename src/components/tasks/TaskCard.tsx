@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { CalendarClock, Bell, Clock, MoreVertical, AlertCircle } from 'lucide-react';
+import { CalendarClock, Bell, Clock, MoreVertical, AlertCircle, CheckCircle2, Clock3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +9,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
-import { format } from 'date-fns';
+import { format, isPast, isToday } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Task {
   id: string;
@@ -25,6 +27,7 @@ export interface Task {
   reminderTime?: string;
   progress?: number;
   assignedTo?: {
+    id: string;
     name: string;
     avatar?: string;
     initials: string;
@@ -49,6 +52,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onSetReminder,
   onUpdateProgress
 }) => {
+  const { toast } = useToast();
+  
   const getPriorityClass = (priority: Task['priority']) => {
     switch (priority) {
       case 'high': return 'priority-high';
@@ -71,14 +76,95 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
   };
 
+  const isDueSoon = (dueDate: Date) => {
+    const now = new Date();
+    const diffTime = dueDate.getTime() - now.getTime();
+    const diffDays = diffTime / (1000 * 3600 * 24);
+    return diffDays <= 2 && diffDays > 0;
+  };
+
+  const getDateStatusIndicator = () => {
+    const dueDate = new Date(task.dueDate);
+    
+    if (isPast(dueDate) && task.status !== 'complete') {
+      return (
+        <div className="flex items-center gap-1 text-xs text-destructive">
+          <AlertCircle className="h-3 w-3" />
+          <span>Overdue</span>
+        </div>
+      );
+    } else if (isToday(dueDate) && task.status !== 'complete') {
+      return (
+        <div className="flex items-center gap-1 text-xs text-receipts-yellow">
+          <Clock3 className="h-3 w-3" />
+          <span>Due today</span>
+        </div>
+      );
+    } else if (isDueSoon(dueDate) && task.status !== 'complete') {
+      return (
+        <div className="flex items-center gap-1 text-xs text-amber-500">
+          <Clock3 className="h-3 w-3" />
+          <span>Due soon</span>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
   const formatDate = (date: Date) => {
     return format(date, 'MMM d, yyyy');
   };
+  
+  const handleStatusChange = (status: Task['status']) => {
+    onStatusChange(task.id, status);
+    
+    let statusMessage = '';
+    switch (status) {
+      case 'pending':
+        statusMessage = 'marked as pending';
+        break;
+      case 'in-progress':
+        statusMessage = 'marked as in progress';
+        break;
+      case 'complete':
+        statusMessage = 'completed';
+        break;
+    }
+    
+    toast({
+      title: `Task ${statusMessage}`,
+      description: `"${task.title}" has been ${statusMessage}.`,
+    });
+  };
+  
+  const handleSetReminder = () => {
+    if (onSetReminder) {
+      onSetReminder(task.id, '1 hour');
+      
+      toast({
+        title: "Reminder Set",
+        description: `You'll be reminded about "${task.title}" 1 hour before it's due.`,
+      });
+    }
+  };
+  
+  const handleDelete = () => {
+    if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
+      onDelete(task.id);
+      
+      toast({
+        title: "Task Deleted",
+        description: `"${task.title}" has been deleted.`,
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <div className={cn('task-card', getPriorityClass(task.priority))}>
+    <div className={cn('task-card', getPriorityClass(task.priority), "p-4 border rounded-lg shadow-sm hover:shadow transition-shadow", task.status === 'complete' ? "opacity-75" : "")}>
       <div className="flex justify-between items-start mb-3">
-        <h3 className="font-medium text-card-foreground">{task.title}</h3>
+        <h3 className="font-medium text-card-foreground truncate">{task.title}</h3>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -87,16 +173,24 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(task)}>Edit</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onStatusChange(task.id, 'pending')}>Mark as Pending</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onStatusChange(task.id, 'in-progress')}>Mark as In Progress</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onStatusChange(task.id, 'complete')}>Mark as Complete</DropdownMenuItem>
-            {onSetReminder && (
-              <DropdownMenuItem onClick={() => onSetReminder(task.id, '1 hour')}>
-                Set Reminder (1 hour before)
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleStatusChange('pending')}>
+              Mark as Pending
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleStatusChange('in-progress')}>
+              Mark as In Progress
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleStatusChange('complete')}>
+              Mark as Complete
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {onSetReminder && !task.reminderSet && (
+              <DropdownMenuItem onClick={handleSetReminder}>
+                Set Reminder
               </DropdownMenuItem>
             )}
             <DropdownMenuItem 
-              onClick={() => onDelete(task.id)}
+              onClick={handleDelete}
               className="text-destructive focus:text-destructive"
             >
               Delete
@@ -107,7 +201,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
       
       <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{task.description}</p>
       
-      {task.progress !== undefined && (
+      {task.progress !== undefined && task.status !== 'complete' && (
         <div className="mb-3">
           <div className="flex justify-between text-xs mb-1">
             <span>Progress</span>
@@ -115,8 +209,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </div>
           <div className="w-full bg-muted rounded-full h-2">
             <div 
-              className="bg-primary h-2 rounded-full" 
-              style={{ width: `${task.progress}%` }}
+              className={`${task.status === 'complete' ? 'bg-receipts-success' : 'bg-primary'} h-2 rounded-full`}
+              style={{ width: `${task.status === 'complete' ? '100' : task.progress}%` }}
             ></div>
           </div>
         </div>
@@ -131,12 +225,16 @@ const TaskCard: React.FC<TaskCardProps> = ({
         {getStatusBadge(task.status)}
       </div>
       
-      {task.reminderSet && (
-        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
-          <Bell className="h-3 w-3" />
-          <span>Reminder: {task.reminderTime}</span>
-        </div>
-      )}
+      <div className="flex justify-between items-center mb-3">
+        {getDateStatusIndicator()}
+        
+        {task.reminderSet && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Bell className="h-3 w-3" />
+            <span>Reminder: {task.reminderTime}</span>
+          </div>
+        )}
+      </div>
 
       {task.tags && task.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
@@ -157,6 +255,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
             </Avatar>
             <span className="text-sm">{task.assignedTo.name}</span>
           </div>
+          
+          {task.status === 'complete' && (
+            <CheckCircle2 className="h-4 w-4 text-receipts-success" />
+          )}
         </div>
       )}
     </div>

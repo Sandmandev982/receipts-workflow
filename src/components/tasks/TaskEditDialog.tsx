@@ -14,6 +14,7 @@ interface TaskEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (task: Omit<Task, 'id'> & { id?: string }) => void;
+  teamMembers?: Array<{ id: string; name: string }>;
 }
 
 const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
@@ -21,6 +22,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
   open,
   onOpenChange,
   onSubmit,
+  teamMembers = [],
 }) => {
   const handleSubmit = (data: any) => {
     // Process the tags into an array if they exist
@@ -37,7 +39,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
       reminderSet: data.reminderEnabled,
       reminderTime: data.reminderEnabled ? data.reminderTime : null,
       progress: parseInt(data.progress, 10),
-      assignedTo: task?.assignedTo,
+      assignedTo: data.assignedTo,
       tags: tags.length > 0 ? tags : null,
     });
     onOpenChange(false);
@@ -49,7 +51,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
         <DialogHeader>
           <DialogTitle>{task?.id ? 'Edit Task' : 'Add New Task'}</DialogTitle>
         </DialogHeader>
-        {task && <TaskForm task={task} onSubmit={handleSubmit} />}
+        {task && <TaskForm task={task} onSubmit={handleSubmit} teamMembers={teamMembers} />}
       </DialogContent>
     </Dialog>
   );

@@ -4,10 +4,12 @@ import { Plus } from 'lucide-react';
 import { Task } from './TaskCard';
 import TaskCard from './TaskCard';
 import TaskFilter, { TaskFilters } from './TaskFilter';
+import TaskEditDialog from './TaskEditDialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import TaskForm from './TaskForm';
-import { isToday, isTomorrow, isThisWeek, isThisMonth, format } from 'date-fns';
+import { isToday, isTomorrow, isThisWeek, isThisMonth, format, isBefore } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface TaskListProps {
   title: string;
@@ -18,6 +20,7 @@ interface TaskListProps {
   onStatusChange: (id: string, status: Task['status']) => void;
   onSetReminder?: (id: string, reminderTime: string) => void;
   loading?: boolean;
+  teamMembers?: Array<{ id: string; name: string }>;
 }
 
 const TaskList: React.FC<TaskListProps> = ({
@@ -29,6 +32,7 @@ const TaskList: React.FC<TaskListProps> = ({
   onStatusChange,
   onSetReminder,
   loading = false,
+  teamMembers = [],
 }) => {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,6 +42,9 @@ const TaskList: React.FC<TaskListProps> = ({
     tags: [],
     dueDate: 'all',
   });
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const { toast } = useToast();
   
   // Process all unique tags from tasks
   const availableTags = React.useMemo(() => {
@@ -74,22 +81,41 @@ const TaskList: React.FC<TaskListProps> = ({
         return false;
       }
       
+      // Assignee filter
+      if (filters.assignedTo && filters.assignedTo.length > 0) {
+        if (!task.assignedTo || !filters.assignedTo.includes(task.assignedTo.id)) {
+          return false;
+        }
+      }
+      
       // Due date filter
-      if (filters.dueDate !== 'all') {
+      if (filters.dueDate !== 'all' || filters.dateRange?.from || filters.dateRange?.to) {
         const dueDate = task.dueDate ? new Date(task.dueDate) : null;
-        if (!dueDate) return filters.dueDate === 'all';
+        if (!dueDate) return filters.dueDate === 'all' && !filters.dateRange?.from && !filters.dateRange?.to;
         
-        switch (filters.dueDate) {
-          case 'today':
-            return isToday(dueDate);
-          case 'tomorrow':
-            return isTomorrow(dueDate);
-          case 'this-week':
-            return isThisWeek(dueDate, { weekStartsOn: 1 });
-          case 'this-month':
-            return isThisMonth(dueDate);
-          default:
-            return true;
+        // Check date range if specified
+        if (filters.dateRange?.from || filters.dateRange?.to) {
+          const isAfterFrom = !filters.dateRange.from || dueDate >= filters.dateRange.from;
+          const isBeforeTo = !filters.dateRange.to || dueDate <= filters.dateRange.to;
+          if (!isAfterFrom || !isBeforeTo) return false;
+        }
+        
+        // Check predefined date filters
+        if (filters.dueDate !== 'all') {
+          switch (filters.dueDate) {
+            case 'today':
+              return isToday(dueDate);
+            case 'tomorrow':
+              return isTomorrow(dueDate);
+            case 'this-week':
+              return isThisWeek(dueDate, { weekStartsOn: 1 });
+            case 'this-month':
+              return isThisMonth(dueDate);
+            case 'overdue':
+              return isBefore(dueDate, new Date()) && task.status !== 'complete';
+            default:
+              return true;
+          }
         }
       }
       
@@ -112,7 +138,14 @@ const TaskList: React.FC<TaskListProps> = ({
       reminderTime: data.reminderEnabled ? data.reminderTime : null,
       progress: parseInt(data.progress, 10),
       tags: tags.length > 0 ? tags : null,
+      assignedTo: data.assignedTo,
     });
+    
+    toast({
+      title: "Task Created",
+      description: "Your task has been successfully created.",
+    });
+    
     setOpen(false);
   };
   
@@ -133,6 +166,21 @@ const TaskList: React.FC<TaskListProps> = ({
       dueDate: 'all',
     });
   };
+  
+  const handleEditTask = (task: Task) => {
+    setSelectedTask(task);
+    setEditDialogOpen(true);
+  };
+  
+  const handleEditSubmit = (taskData: Omit<Task, 'id'> & { id?: string }) => {
+    if (taskData.id) {
+      onEditTask({ ...taskData, id: taskData.id } as Task);
+      toast({
+        title: "Task Updated",
+        description: "Your task has been successfully updated.",
+      });
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -148,7 +196,7 @@ const TaskList: React.FC<TaskListProps> = ({
             <DialogHeader>
               <DialogTitle>Add New Task</DialogTitle>
             </DialogHeader>
-            <TaskForm onSubmit={handleSubmit} />
+            <TaskForm onSubmit={handleSubmit} teamMembers={teamMembers} />
           </DialogContent>
         </Dialog>
       </div>
@@ -158,6 +206,7 @@ const TaskList: React.FC<TaskListProps> = ({
         onFilterChange={handleFilterChange} 
         onClearFilters={handleClearFilters}
         availableTags={availableTags}
+        teamMembers={teamMembers}
       />
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -170,7 +219,7 @@ const TaskList: React.FC<TaskListProps> = ({
             <TaskCard
               key={task.id}
               task={task}
-              onEdit={onEditTask}
+              onEdit={() => handleEditTask(task)}
               onDelete={onDeleteTask}
               onStatusChange={onStatusChange}
               onSetReminder={onSetReminder}
@@ -184,6 +233,13 @@ const TaskList: React.FC<TaskListProps> = ({
           </p>
         )}
       </div>
+      
+      <TaskEditDialog
+        task={selectedTask}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSubmit={handleEditSubmit}
+      />
     </div>
   );
 };
