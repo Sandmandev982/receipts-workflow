@@ -1,69 +1,68 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { ThemeProvider as NextThemesProvider, useTheme as useNextTheme } from 'next-themes';
 
-type Theme = 'dark' | 'light';
-
-interface ThemeContextType {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
+interface ThemeContextProps {
+  theme: string;
+  setTheme: (theme: string) => void;
   toggleTheme: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Check for saved theme preference
-    const savedTheme = localStorage.getItem('theme');
-    
-    // Check for system preference if no saved preference
-    if (!savedTheme) {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // Function to safely check if localStorage is available
+  const isLocalStorageAvailable = () => {
+    try {
+      const testKey = '__test__';
+      localStorage.setItem(testKey, testKey);
+      localStorage.removeItem(testKey);
+      return true;
+    } catch (e) {
+      return false;
     }
-    
-    return (savedTheme as Theme) || 'light';
-  });
-
-  // Toggle theme function for easier switching
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
   };
 
+  // Use a default theme if localStorage is not available
+  const getInitialTheme = () => {
+    if (isLocalStorageAvailable()) {
+      return localStorage.getItem('theme') || 'light';
+    }
+    return 'light'; // Default theme if localStorage is not available
+  };
+
+  const [theme, setThemeState] = useState<string>(getInitialTheme());
+
   useEffect(() => {
-    // Save theme preference
-    localStorage.setItem('theme', theme);
-    
-    // Apply theme to document
-    const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
-    root.classList.add(theme);
+    if (isLocalStorageAvailable()) {
+      localStorage.setItem('theme', theme);
+    }
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
   }, [theme]);
 
-  // Listen for system theme changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    const handleChange = () => {
-      if (!localStorage.getItem('theme')) {
-        setTheme(mediaQuery.matches ? 'dark' : 'light');
-      }
-    };
-    
-    mediaQuery.addEventListener('change', handleChange);
-    
-    return () => {
-      mediaQuery.removeEventListener('change', handleChange);
-    };
-  }, []);
+  const setTheme = (newTheme: string) => {
+    setThemeState(newTheme);
+  };
+
+  const toggleTheme = () => {
+    setThemeState(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+  };
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
-      {children}
+      <NextThemesProvider
+        attribute="class"
+        defaultTheme={theme}
+        enableSystem={false}
+      >
+        {children}
+      </NextThemesProvider>
     </ThemeContext.Provider>
   );
 };
 
-export const useTheme = (): ThemeContextType => {
+export const useTheme = (): ThemeContextProps => {
   const context = useContext(ThemeContext);
   
   if (context === undefined) {
