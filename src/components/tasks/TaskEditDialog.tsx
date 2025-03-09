@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Task } from './types';
 import TaskForm from './TaskForm';
+import { TaskFormValues } from './form/TaskFormSchema';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,6 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { TeamRow } from '@/types/database.types';
 
 interface TeamOption {
   id: string;
@@ -71,7 +71,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
     }
   };
 
-  const handleSubmit = (data: any) => {
+  const handleSubmit = (data: TaskFormValues) => {
     // Process the tags into an array if they exist
     const tags = data.tags ? data.tags.split(',').map((tag: string) => tag.trim()) : [];
     
@@ -90,7 +90,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
       dueTime: data.dueTime,
       reminderSet: data.reminderEnabled,
       reminderTime: data.reminderEnabled ? data.reminderTime : null,
-      progress: parseInt(data.progress, 10),
+      progress: parseInt(data.progress.toString(), 10),
       tags: tags.length > 0 ? tags : null,
       assignedTo: assignedTeamMember ? {
         id: assignedTeamMember.id,
