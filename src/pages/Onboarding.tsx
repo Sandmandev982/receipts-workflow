@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
+import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 import { useOnboarding } from '@/hooks/useOnboarding';
 
 const Onboarding = () => {

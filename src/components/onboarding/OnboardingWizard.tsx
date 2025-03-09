@@ -1,8 +1,5 @@
 
-import React, { useState } from 'react';
-import { CheckCircle, Circle, ChevronRight, ChevronLeft, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import React from 'react';
 
 const steps = [
   {
@@ -24,72 +21,22 @@ const steps = [
 ];
 
 interface OnboardingWizardProps {
-  onComplete: () => void;
+  step: number;
 }
 
-const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
-  const [currentStep, setCurrentStep] = useState(0);
-
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      onComplete();
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
+const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ step }) => {
+  const currentStep = step - 1; // Convert from 1-based to 0-based index
+  
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <Card className="w-full max-w-md mx-4">
-        <CardHeader className="relative">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="absolute right-2 top-2" 
-            onClick={onComplete}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          <CardTitle className="text-xl">{steps[currentStep].title}</CardTitle>
-        </CardHeader>
-        <CardContent className="pb-6">
-          <p className="mb-8">{steps[currentStep].content}</p>
-          
-          <div className="flex justify-center space-x-2">
-            {steps.map((_, index) => (
-              <button
-                key={index}
-                className="focus:outline-none"
-                onClick={() => setCurrentStep(index)}
-              >
-                {index === currentStep ? (
-                  <CheckCircle className="h-5 w-5 text-primary" />
-                ) : (
-                  <Circle className="h-5 w-5 text-muted-foreground" />
-                )}
-              </button>
-            ))}
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentStep === 0}
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" /> Previous
-          </Button>
-          <Button onClick={handleNext}>
-            {currentStep === steps.length - 1 ? 'Get Started' : 'Next'} {currentStep < steps.length - 1 && <ChevronRight className="ml-2 h-4 w-4" />}
-          </Button>
-        </CardFooter>
-      </Card>
+    <div className="py-4">
+      <h2 className="text-xl font-semibold mb-4">{steps[currentStep].title}</h2>
+      <p className="text-muted-foreground">{steps[currentStep].content}</p>
+      
+      {currentStep === 0 && (
+        <div className="mt-6 p-4 bg-primary/10 rounded-lg">
+          <p className="text-sm">You can complete this setup in under 4 minutes!</p>
+        </div>
+      )}
     </div>
   );
 };
