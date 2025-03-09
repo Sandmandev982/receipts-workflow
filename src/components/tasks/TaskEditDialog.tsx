@@ -60,7 +60,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
         <DialogHeader>
           <DialogTitle>{task?.id ? 'Edit Task' : 'Add New Task'}</DialogTitle>
         </DialogHeader>
-        {task && <TaskForm task={task} onSubmit={handleSubmit} teamMembers={teamMembers} />}
+        {open && <TaskForm task={task} onSubmit={handleSubmit} teamMembers={teamMembers} />}
       </DialogContent>
     </Dialog>
   );
