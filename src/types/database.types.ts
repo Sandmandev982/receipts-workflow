@@ -29,15 +29,23 @@ export interface ProfileRow {
 export interface TeamRow {
   id: string;
   name: string;
+  description: string | null;
+  created_by: string;
   created_at: string;
-  updated_at: string;
 }
 
 export interface TeamMemberRow {
   id: string;
   team_id: string;
   user_id: string;
-  role: 'owner' | 'admin' | 'member';
+  role: 'admin' | 'member';
+  joined_at: string;
+}
+
+export interface TeamTaskRow {
+  id: string;
+  team_id: string;
+  task_id: string;
   created_at: string;
 }
 

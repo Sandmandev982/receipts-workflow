@@ -20,5 +20,5 @@ export interface Task {
   teamId?: string;
 }
 
-export type TaskStatus = Task['status'];
-export type TaskPriority = Task['priority'];
+export type TaskStatus = 'pending' | 'in-progress' | 'complete';
+export type TaskPriority = 'high' | 'medium' | 'low';
