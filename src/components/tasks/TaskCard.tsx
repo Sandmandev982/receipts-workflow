@@ -85,7 +85,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const getDateStatusIndicator = () => {
     const dueDate = new Date(task.dueDate);
     
-    // Fix: Use task.status !== 'complete' for all condition checks
+    // Fixed type comparison by explicitly checking against 'complete' string value
     if (isPast(dueDate) && task.status !== 'complete') {
       return (
         <div className="flex items-center gap-1 text-xs text-destructive">
@@ -111,7 +111,6 @@ const TaskCard: React.FC<TaskCardProps> = ({
     
     return null;
   };
-
   
   const formatDate = (date: Date) => {
     return format(date, 'MMM d, yyyy');
