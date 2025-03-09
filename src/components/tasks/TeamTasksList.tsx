@@ -1,330 +1,189 @@
-
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import TaskList from './TaskList';
+import { format } from 'date-fns';
 import { Task } from './types';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
-
-interface Team {
-  id: string;
-  name: string;
-}
+import TaskCard from './TaskCard';
+import TaskFilter from './TaskFilter';
+import TaskEditDialog from './TaskEditDialog';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import TaskForm from './TaskForm';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface TeamTasksListProps {
-  teamId?: string;
+  teamId: string;
 }
+
+// Sample tasks data (replace with your actual data fetching logic)
+const sampleTasks: Task[] = [
+  {
+    id: '1',
+    title: 'Design Sprint',
+    description: 'Plan and execute design sprint for new feature',
+    priority: 'high',
+    status: 'in-progress',
+    dueDate: new Date('2024-08-10'),
+    dueTime: '10:00',
+    reminderSet: true,
+    reminderTime: '09:30',
+    progress: 50,
+    tags: ['design', 'sprint'],
+  },
+  {
+    id: '2',
+    title: 'Code Review',
+    description: 'Review code for performance and security issues',
+    priority: 'medium',
+    status: 'pending',
+    dueDate: new Date('2024-08-15'),
+    dueTime: '14:00',
+    reminderSet: false,
+    progress: 0,
+    tags: ['code', 'review'],
+  },
+  {
+    id: '3',
+    title: 'Client Meeting',
+    description: 'Prepare and conduct client meeting',
+    priority: 'low',
+    status: 'complete',
+    dueDate: new Date('2024-08-20'),
+    dueTime: '16:00',
+    reminderSet: true,
+    reminderTime: '15:30',
+    progress: 100,
+    tags: ['client', 'meeting'],
+  },
+];
+
+// Convert Date to string format for Supabase
+const formatDateForSupabase = (date: Date): string => {
+  return format(date, 'yyyy-MM-dd');
+};
 
 const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedTeamId, setSelectedTeamId] = useState<string | undefined>(teamId);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+  const { session } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      fetchUserTeams();
-    }
-  }, [user]);
+    fetchTeamTasks();
+  }, [teamId, session]);
 
-  useEffect(() => {
-    if (selectedTeamId) {
-      fetchTeamTasks(selectedTeamId);
-    }
-  }, [selectedTeamId]);
-
-  const fetchUserTeams = async () => {
+  const fetchTeamTasks = async () => {
+    setLoading(true);
     try {
-      const { data: memberData, error: memberError } = await supabase
-        .from('team_members')
-        .select('team_id')
-        .eq('user_id', user?.id);
-
-      if (memberError) throw memberError;
-
-      if (memberData && memberData.length > 0) {
-        const teamIds = memberData.map(item => item.team_id);
-        
-        const { data: teamsData, error: teamsError } = await supabase
-          .from('teams')
-          .select('id, name')
-          .in('id', teamIds);
-
-        if (teamsError) throw teamsError;
-        
-        setTeams(teamsData || []);
-        
-        // Set first team as selected if no teamId was provided
-        if (!selectedTeamId && teamsData && teamsData.length > 0) {
-          setSelectedTeamId(teamsData[0].id);
+      // Simulate fetching tasks from Supabase
+      setTimeout(async () => {
+        setTasks(sampleTasks);
+        setLoading(false);
+      }, 1000);
+      
+      // Convert task due_date from Date to string when inserting into Supabase
+      const tasksWithStringDates = sampleTasks.map(task => ({
+        ...task,
+        due_date: formatDateForSupabase(task.due_date)
+      }));
+      
+      // Insert tasks one by one instead of as an array
+      for (const task of tasksWithStringDates) {
+        const { error } = await supabase
+          .from('tasks')
+          .insert(task);
+          
+        if (error) {
+          console.error("Error inserting task:", error);
         }
       }
     } catch (error) {
-      console.error('Error fetching teams:', error);
-      toast({
-        title: "Error loading teams",
-        description: "Could not load your teams. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchTeamTasks = async (teamId: string) => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select(`
-          *,
-          team_tasks!inner(team_id)
-        `)
-        .eq('team_tasks.team_id', teamId);
-
-      if (error) throw error;
-
-      const formattedTasks: Task[] = (data || []).map(task => ({
-        id: task.id,
-        title: task.title,
-        description: task.description || '',
-        priority: task.priority as Task['priority'],
-        status: task.status as Task['status'],
-        dueDate: new Date(task.due_date),
-        dueTime: task.due_time || undefined,
-        reminderSet: task.reminder_set || false,
-        reminderTime: task.reminder_time || undefined,
-        progress: task.progress || 0,
-        tags: task.tags || [],
-      }));
-
-      setTasks(formattedTasks);
-    } catch (error) {
-      console.error('Error fetching team tasks:', error);
-      toast({
-        title: "Error loading tasks",
-        description: "Could not load team tasks. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
+      console.error('Error fetching tasks:', error);
       setLoading(false);
     }
   };
 
-  const handleAddTask = async (task: Omit<Task, 'id'>) => {
-    if (!selectedTeamId) return;
-    
-    try {
-      // Add task to tasks table
-      const { data: taskData, error: taskError } = await supabase
-        .from('tasks')
-        .insert([{
-          title: task.title,
-          description: task.description,
-          priority: task.priority,
-          status: task.status,
-          due_date: task.dueDate,
-          due_time: task.dueTime,
-          reminder_set: task.reminderSet,
-          reminder_time: task.reminderTime,
-          progress: task.progress,
-          tags: task.tags,
-          user_id: user?.id,
-        }])
-        .select();
-
-      if (taskError) throw taskError;
-      
-      if (taskData && taskData[0]) {
-        // Link task to team
-        const { error: teamTaskError } = await supabase
-          .from('team_tasks')
-          .insert([{
-            task_id: taskData[0].id,
-            team_id: selectedTeamId,
-          }]);
-
-        if (teamTaskError) throw teamTaskError;
-
-        // Add to local state
-        const newTask: Task = {
-          id: taskData[0].id,
-          title: taskData[0].title,
-          description: taskData[0].description || '',
-          priority: taskData[0].priority as Task['priority'],
-          status: taskData[0].status as Task['status'],
-          dueDate: new Date(taskData[0].due_date),
-          dueTime: taskData[0].due_time || undefined,
-          reminderSet: taskData[0].reminder_set || false,
-          reminderTime: taskData[0].reminder_time || undefined,
-          progress: taskData[0].progress || 0,
-          tags: taskData[0].tags || [],
-        };
-        
-        setTasks(prev => [...prev, newTask]);
-      }
-    } catch (error) {
-      console.error('Error adding team task:', error);
-      toast({
-        title: "Error adding task",
-        description: "Could not add task to team. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const handleEditTask = (task: Task) => {
+    setSelectedTask(task);
+    setIsEditDialogOpen(true);
   };
 
-  const handleEditTask = async (task: Task) => {
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({
-          title: task.title,
-          description: task.description,
-          priority: task.priority,
-          status: task.status,
-          due_date: task.dueDate,
-          due_time: task.dueTime,
-          reminder_set: task.reminderSet,
-          reminder_time: task.reminderTime,
-          progress: task.progress,
-          tags: task.tags,
-        })
-        .eq('id', task.id);
-
-      if (error) throw error;
-
-      setTasks(prev => prev.map(t => t.id === task.id ? task : t));
-    } catch (error) {
-      console.error('Error updating team task:', error);
-      toast({
-        title: "Error updating task",
-        description: "Could not update team task. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const handleDeleteTask = async (taskId: string) => {
+    // Simulate deleting a task
+    setTasks(tasks.filter((task) => task.id !== taskId));
   };
 
-  const handleDeleteTask = async (id: string) => {
-    try {
-      // Delete the team_tasks association first
-      const { error: teamTaskError } = await supabase
-        .from('team_tasks')
-        .delete()
-        .eq('task_id', id);
-
-      if (teamTaskError) throw teamTaskError;
-
-      // Then delete the task
-      const { error: taskError } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', id);
-
-      if (taskError) throw taskError;
-
-      setTasks(prev => prev.filter(task => task.id !== id));
-      
-      toast({
-        title: "Task deleted",
-        description: "The task has been removed from this team."
-      });
-    } catch (error) {
-      console.error('Error deleting team task:', error);
-      toast({
-        title: "Error deleting task",
-        description: "Could not delete team task. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleStatusChange = async (id: string, status: Task['status']) => {
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ status })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setTasks(prev => prev.map(task => 
-        task.id === id ? { ...task, status } : task
-      ));
-    } catch (error) {
-      console.error('Error updating task status:', error);
-      toast({
-        title: "Error updating task",
-        description: "Could not update task status. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSetReminder = async (id: string, reminderTime: string) => {
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ 
-          reminder_set: true,
-          reminder_time: reminderTime
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setTasks(prev => prev.map(task => 
-        task.id === id ? { ...task, reminderSet: true, reminderTime } : task
-      ));
-      
-      toast({
-        title: "Reminder set",
-        description: `You'll be reminded ${reminderTime} before the task is due.`
-      });
-    } catch (error) {
-      console.error('Error setting reminder:', error);
-      toast({
-        title: "Error setting reminder",
-        description: "Could not set reminder. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const selectedTeam = teams.find(team => team.id === selectedTeamId);
-
-  if (teams.length === 0) {
-    return (
-      <div className="p-6 text-center">
-        <h2 className="text-xl font-semibold mb-4">No Teams Available</h2>
-        <p className="text-muted-foreground mb-4">You're not a member of any teams yet.</p>
-      </div>
+  const handleStatusChange = async (taskId: string, newStatus: Task['status']) => {
+    // Simulate updating task status
+    setTasks(
+      tasks.map((task) =>
+        task.id === taskId ? { ...task, status: newStatus } : task
+      )
     );
-  }
+  };
+
+  const handleTaskUpdate = (updatedTask: Task) => {
+    setTasks(
+      tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
+    );
+    setIsEditDialogOpen(false);
+  };
+
+  const handleTaskCreate = (newTask: Task) => {
+    setTasks([...tasks, newTask]);
+    setIsTaskFormOpen(false);
+  };
 
   return (
-    <div className="space-y-6">
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold">Team Tasks</h2>
+        <Button onClick={() => setIsTaskFormOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Task
+        </Button>
+      </div>
+
+      <TaskFilter />
+
       {loading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-64" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-64 w-full" />
-            ))}
-          </div>
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="border rounded-md p-4">
+              <Skeleton className="h-4 w-3/4 mb-2" />
+              <Skeleton className="h-3 w-5/6" />
+            </div>
+          ))}
         </div>
       ) : (
-        <TaskList
-          title={`${selectedTeam?.name || 'Team'} Tasks`}
-          tasks={tasks}
-          onAddTask={handleAddTask}
-          onEditTask={handleEditTask}
-          onDeleteTask={handleDeleteTask}
-          onStatusChange={handleStatusChange}
-          onSetReminder={handleSetReminder}
-          loading={loading}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              onEdit={() => handleEditTask(task)}
+              onDelete={() => handleDeleteTask(task.id)}
+              onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)}
+            />
+          ))}
+        </div>
       )}
+
+      <TaskEditDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        task={selectedTask}
+        onUpdate={handleTaskUpdate}
+      />
+
+      <Dialog open={isTaskFormOpen} onOpenChange={setIsTaskFormOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <TaskForm onCreate={handleTaskCreate} onClose={() => setIsTaskFormOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
