@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Task, TaskPriority, TaskStatus } from '@/components/tasks/types';
 import { format } from 'date-fns';
@@ -25,6 +26,20 @@ export interface TeamMember {
   };
 }
 
+export interface Team {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface CreateTeamParams {
+  name: string;
+  description?: string;
+  created_by: string;
+}
+
 export const getTeamMembers = async (teamId: string): Promise<TeamMember[]> => {
   try {
     const { data, error } = await supabase
@@ -35,7 +50,7 @@ export const getTeamMembers = async (teamId: string): Promise<TeamMember[]> => {
         user_id,
         role,
         joined_at,
-        profiles:user_id (
+        profiles:profiles(
           first_name,
           last_name,
           avatar_url
@@ -51,14 +66,76 @@ export const getTeamMembers = async (teamId: string): Promise<TeamMember[]> => {
       user_id: member.user_id,
       role: member.role as 'admin' | 'member',
       joined_at: member.joined_at,
-      profile: member.profiles || {
-        first_name: null,
-        last_name: null,
-        avatar_url: null
+      profile: {
+        first_name: member.profiles?.first_name || null,
+        last_name: member.profiles?.last_name || null,
+        avatar_url: member.profiles?.avatar_url || null
       }
     }));
   } catch (error) {
     console.error('Error fetching team members:', error);
     return [];
+  }
+};
+
+export const getTeams = async (userId: string): Promise<Team[]> => {
+  try {
+    // Get teams the user is a member of
+    const { data: membershipData, error: membershipError } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', userId);
+
+    if (membershipError) throw membershipError;
+
+    if (!membershipData || membershipData.length === 0) {
+      return [];
+    }
+
+    // Get the team details
+    const teamIds = membershipData.map(item => item.team_id);
+    const { data: teamsData, error: teamsError } = await supabase
+      .from('teams')
+      .select('*')
+      .in('id', teamIds);
+
+    if (teamsError) throw teamsError;
+
+    return teamsData || [];
+  } catch (error) {
+    console.error('Error fetching teams:', error);
+    return [];
+  }
+};
+
+export const createTeam = async (params: CreateTeamParams): Promise<Team> => {
+  try {
+    const { data, error } = await supabase
+      .from('teams')
+      .insert({
+        name: params.name,
+        description: params.description || null,
+        created_by: params.created_by
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Also add the creator as a team member with admin role
+    const { error: memberError } = await supabase
+      .from('team_members')
+      .insert({
+        team_id: data.id,
+        user_id: params.created_by,
+        role: 'admin'
+      });
+
+    if (memberError) throw memberError;
+
+    return data;
+  } catch (error) {
+    console.error('Error creating team:', error);
+    throw error;
   }
 };

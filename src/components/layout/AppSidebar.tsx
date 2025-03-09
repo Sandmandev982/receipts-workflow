@@ -1,46 +1,76 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { Sidebar, SidebarSection } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { CalendarIcon, LayoutDashboardIcon, ListTodoIcon, UsersIcon, UserIcon, LogOutIcon } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { Sidebar } from '@/components/ui/sidebar';
+import { SidebarSection } from '@/components/ui/sidebar';
+import { useOnboarding } from '@/hooks/useOnboarding';
+import { useMobile } from '@/hooks/use-mobile';
+import { 
+  Home, 
+  CalendarDays, 
+  Users, 
+  Settings, 
+  PlusCircle, 
+  CheckCircle2,
+  User,
+  LogOut
+} from 'lucide-react';
 
-const AppSidebar = () => {
-  const isMobile = useIsMobile();
-  const { signOut } = useAuth();
+const AppSidebar: React.FC = () => {
+  const { needsOnboarding } = useOnboarding();
+  const isMobile = useMobile();
+
+  // Modified to use "icon" for mobile and "none" for desktop instead of boolean
+  const collapsedMode = isMobile ? "icon" : "none";
 
   return (
-    <Sidebar collapsible={isMobile ? false : true}>
-      <SidebarSection title="Menu" collapsible={false}>
-        <NavLink to="/" className={({ isActive }) => cn("sidebar-link", { "is-active": isActive })}>
-          <LayoutDashboardIcon className="mr-2 h-4 w-4" />
-          <span>Dashboard</span>
+    <Sidebar collapsed={collapsedMode}>
+      <SidebarSection>
+        <NavLink to="/" className="flex items-center space-x-2">
+          <Home className="h-4 w-4" />
+          <span>Home</span>
         </NavLink>
-        <NavLink to="/tasks" className={({ isActive }) => cn("sidebar-link", { "is-active": isActive })}>
-          <ListTodoIcon className="mr-2 h-4 w-4" />
-          <span>Tasks</span>
+      </SidebarSection>
+
+      <SidebarSection title="Tasks">
+        <NavLink to="/tasks" className="flex items-center space-x-2">
+          <CheckCircle2 className="h-4 w-4" />
+          <span>My Tasks</span>
         </NavLink>
-        <NavLink to="/teams" className={({ isActive }) => cn("sidebar-link", { "is-active": isActive })}>
-          <UsersIcon className="mr-2 h-4 w-4" />
-          <span>Teams</span>
+        <NavLink to="/tasks/new" className="flex items-center space-x-2">
+          <PlusCircle className="h-4 w-4" />
+          <span>Add Task</span>
         </NavLink>
-        <NavLink to="/calendar" className={({ isActive }) => cn("sidebar-link", { "is-active": isActive })}>
-          <CalendarIcon className="mr-2 h-4 w-4" />
+        <NavLink to="/calendar" className="flex items-center space-x-2">
+          <CalendarDays className="h-4 w-4" />
           <span>Calendar</span>
         </NavLink>
       </SidebarSection>
 
-      <SidebarSection title="Account" collapsible={true}>
-        <NavLink to="/profile" className={({ isActive }) => cn("sidebar-link", { "is-active": isActive })}>
-          <UserIcon className="mr-2 h-4 w-4" />
+      <SidebarSection title="Teams">
+        <NavLink to="/teams" className="flex items-center space-x-2">
+          <Users className="h-4 w-4" />
+          <span>Teams</span>
+        </NavLink>
+      </SidebarSection>
+
+      {needsOnboarding && (
+        <SidebarSection title="Setup">
+          <NavLink to="/onboarding" className="flex items-center space-x-2">
+            <Settings className="h-4 w-4" />
+            <span>Onboarding</span>
+          </NavLink>
+        </SidebarSection>
+      )}
+
+      <SidebarSection title="Account">
+        <NavLink to="/profile" className="flex items-center space-x-2">
+          <User className="h-4 w-4" />
           <span>Profile</span>
         </NavLink>
-        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={signOut}>
-          <LogOutIcon className="mr-2 h-4 w-4" />
-          Sign Out
-        </Button>
+        <NavLink to="/auth/logout" className="flex items-center space-x-2">
+          <LogOut className="h-4 w-4" />
+          <span>Logout</span>
+        </NavLink>
       </SidebarSection>
     </Sidebar>
   );

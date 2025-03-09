@@ -21,7 +21,7 @@ interface TaskEditDialogProps {
   task: Task | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (task: Omit<Task, 'id'> & { id?: string }) => void;
+  onSubmit: (task: Task) => void;
   teamMembers?: Array<{ id: string; name: string }>;
 }
 
@@ -80,8 +80,8 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
       ? teamMembers.find(m => m.id === data.assignedTo) 
       : undefined;
     
-    onSubmit({
-      ...(task?.id ? { id: task.id } : {}),
+    const updatedTask: Task = {
+      ...(task as Task), // We know task is non-null here because we check in the component
       title: data.title,
       description: data.description,
       priority: data.priority,
@@ -89,16 +89,18 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
       dueDate: data.dueDate,
       dueTime: data.dueTime,
       reminderSet: data.reminderEnabled,
-      reminderTime: data.reminderEnabled ? data.reminderTime : null,
-      progress: parseInt(data.progress.toString(), 10),
-      tags: tags.length > 0 ? tags : null,
+      reminderTime: data.reminderEnabled ? data.reminderTime : undefined,
+      progress: data.progress,
+      tags: tags.length > 0 ? tags : undefined,
       assignedTo: assignedTeamMember ? {
         id: assignedTeamMember.id,
         name: assignedTeamMember.name,
         initials: assignedTeamMember.name.substring(0, 2).toUpperCase()
       } : undefined,
       teamId: data.teamId || undefined
-    });
+    };
+    
+    onSubmit(updatedTask);
     onOpenChange(false);
   };
 
@@ -108,7 +110,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
         <DialogHeader>
           <DialogTitle>{task?.id ? 'Edit Task' : 'Add New Task'}</DialogTitle>
         </DialogHeader>
-        {open && <TaskForm 
+        {open && task && <TaskForm 
           task={task} 
           onSubmit={handleSubmit} 
           teamMembers={teamMembers}

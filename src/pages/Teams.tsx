@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout } from '@/components/layout/Layout';
+import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,8 +17,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { TeamTasksList } from '@/components/tasks/TeamTasksList';
+import TeamTasksList from '@/components/tasks/TeamTasksList';
 import { createTeam, getTeams, getTeamMembers, TeamMember } from '@/lib/api';
+import { Label } from '@/components/ui/label';
 
 const teamFormSchema = z.object({
   name: z.string().min(2, {
@@ -207,7 +208,7 @@ const Teams = () => {
 
           <div className="md:col-span-3">
             {selectedTeam ? (
-              <Tabs defaultvalue="tasks" className="w-full">
+              <Tabs defaultValue="tasks" className="w-full">
                 <TabsList>
                   <TabsTrigger value="tasks">Tasks</TabsTrigger>
                   <TabsTrigger value="members">Members</TabsTrigger>
