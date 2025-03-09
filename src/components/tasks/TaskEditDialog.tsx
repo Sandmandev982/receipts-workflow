@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Task } from './TaskCard';
+import { Task } from './types';
 import TaskForm from './TaskForm';
 import {
   Dialog,

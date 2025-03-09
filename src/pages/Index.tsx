@@ -6,7 +6,7 @@ import SummaryCards from '@/components/dashboard/SummaryCards';
 import TaskList from '@/components/tasks/TaskList';
 import TaskEditDialog from '@/components/tasks/TaskEditDialog';
 import ProgressChart from '@/components/dashboard/ProgressChart';
-import { Task } from '@/components/tasks/TaskCard';
+import { Task } from '@/components/tasks/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { TaskRow } from '@/types/database.types';

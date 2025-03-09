@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { Task } from './TaskCard';
+import { Task } from './types';
 import TaskCard from './TaskCard';
 import TaskFilter, { TaskFilters } from './TaskFilter';
 import TaskEditDialog from './TaskEditDialog';

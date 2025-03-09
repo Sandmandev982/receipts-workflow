@@ -90,7 +90,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           <div className="w-full bg-muted rounded-full h-2">
             <div 
               className={task.status === 'complete' ? 'bg-receipts-success h-2 rounded-full' : 'bg-primary h-2 rounded-full'}
-              style={{ width: `${task.status === 'complete' ? 100 : task.progress}%` }}
+              style={{ width: `${task.progress}%` }}
             ></div>
           </div>
         </div>
