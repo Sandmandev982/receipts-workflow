@@ -16,6 +16,7 @@ export interface ProfileRow {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
+  completed_onboarding: boolean;
   created_at: string;
   updated_at: string;
 }
