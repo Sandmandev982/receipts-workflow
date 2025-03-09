@@ -1,38 +1,15 @@
+
 import React from 'react';
-import { CalendarClock, Bell, Clock, MoreVertical, AlertCircle, CheckCircle2, Clock3 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { CalendarClock, Bell, CheckCircle2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
-import { format, isPast, isToday } from 'date-fns';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  priority: 'high' | 'medium' | 'low';
-  status: 'pending' | 'in-progress' | 'complete';
-  dueDate: Date;
-  dueTime?: string;
-  reminderSet?: boolean;
-  reminderTime?: string;
-  progress?: number;
-  assignedTo?: {
-    id: string;
-    name: string;
-    avatar?: string;
-    initials: string;
-  };
-  tags?: string[];
-}
+import { Task } from './types';
+import { TaskStatusBadge } from './TaskStatusBadge';
+import { TaskDateIndicator } from './TaskDateIndicator';
+import { TaskActions } from './TaskActions';
 
 interface TaskCardProps {
   task: Task;
@@ -62,61 +39,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
     }
   };
 
-  const getStatusBadge = (status: Task['status']) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="outline" className="bg-receipts-yellow/10 border-receipts-yellow text-receipts-yellow font-normal">Pending</Badge>;
-      case 'in-progress':
-        return <Badge variant="outline" className="bg-receipts-blue/10 border-receipts-blue text-receipts-blue font-normal">In Progress</Badge>;
-      case 'complete':
-        return <Badge variant="outline" className="bg-receipts-success/10 border-receipts-success text-receipts-success font-normal">Complete</Badge>;
-      default:
-        return null;
-    }
-  };
-
-  const isDueSoon = (dueDate: Date) => {
-    const now = new Date();
-    const diffTime = dueDate.getTime() - now.getTime();
-    const diffDays = diffTime / (1000 * 3600 * 24);
-    return diffDays <= 2 && diffDays > 0;
-  };
-
-  const getDateStatusIndicator = () => {
-    const dueDate = new Date(task.dueDate);
-    
-    if (isPast(dueDate) && task.status !== 'complete') {
-      return (
-        <div className="flex items-center gap-1 text-xs text-destructive">
-          <AlertCircle className="h-3 w-3" />
-          <span>Overdue</span>
-        </div>
-      );
-    } else if (isToday(dueDate) && task.status !== 'complete') {
-      return (
-        <div className="flex items-center gap-1 text-xs text-receipts-yellow">
-          <Clock3 className="h-3 w-3" />
-          <span>Due today</span>
-        </div>
-      );
-    } else if (isDueSoon(dueDate) && task.status !== 'complete') {
-      return (
-        <div className="flex items-center gap-1 text-xs text-amber-500">
-          <Clock3 className="h-3 w-3" />
-          <span>Due soon</span>
-        </div>
-      );
-    }
-    
-    return null;
-  };
-  
-  const formatDate = (date: Date) => {
-    return format(date, 'MMM d, yyyy');
-  };
-  
-  const handleStatusChange = (status: Task['status']) => {
-    onStatusChange(task.id, status);
+  const handleStatusChange = (id: string, status: Task['status']) => {
+    onStatusChange(id, status);
     
     let statusMessage = '';
     switch (status) {
@@ -136,29 +60,6 @@ const TaskCard: React.FC<TaskCardProps> = ({
       description: `"${task.title}" has been ${statusMessage}.`,
     });
   };
-  
-  const handleSetReminder = () => {
-    if (onSetReminder) {
-      onSetReminder(task.id, '1 hour');
-      
-      toast({
-        title: "Reminder Set",
-        description: `You'll be reminded about "${task.title}" 1 hour before it's due.`,
-      });
-    }
-  };
-  
-  const handleDelete = () => {
-    if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
-      onDelete(task.id);
-      
-      toast({
-        title: "Task Deleted",
-        description: `"${task.title}" has been deleted.`,
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <div className={cn(
@@ -169,38 +70,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
     )}>
       <div className="flex justify-between items-start mb-3">
         <h3 className="font-medium text-card-foreground truncate">{task.title}</h3>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(task)}>Edit</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleStatusChange('pending')}>
-              Mark as Pending
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleStatusChange('in-progress')}>
-              Mark as In Progress
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleStatusChange('complete')}>
-              Mark as Complete
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {onSetReminder && !task.reminderSet && (
-              <DropdownMenuItem onClick={handleSetReminder}>
-                Set Reminder
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem 
-              onClick={handleDelete}
-              className="text-destructive focus:text-destructive"
-            >
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <TaskActions
+          task={task}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onStatusChange={handleStatusChange}
+          onSetReminder={onSetReminder}
+        />
       </div>
       
       <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{task.description}</p>
@@ -223,14 +99,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <CalendarClock className="h-4 w-4" />
-          <span>{formatDate(task.dueDate)}</span>
+          <span>{format(new Date(task.dueDate), 'MMM d, yyyy')}</span>
           {task.dueTime && <span className="text-xs">{task.dueTime}</span>}
         </div>
-        {getStatusBadge(task.status)}
+        <TaskStatusBadge status={task.status} />
       </div>
       
       <div className="flex justify-between items-center mb-3">
-        {getDateStatusIndicator()}
+        <TaskDateIndicator dueDate={new Date(task.dueDate)} status={task.status} />
         
         {task.reminderSet && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
