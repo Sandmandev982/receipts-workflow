@@ -1,354 +1,114 @@
 
 import React from 'react';
-import { Search, Filter, Calendar, X } from 'lucide-react';
+import { Search, Calendar, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
-import { Task } from './TaskCard';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
 
 interface TaskFilterProps {
-  onSearch: (searchTerm: string) => void;
-  onFilterChange: (filters: TaskFilters) => void;
-  onClearFilters: () => void;
-  availableTags: string[];
-}
-
-export interface TaskFilters {
-  status: string[];
-  priority: string[];
-  tags: string[];
-  dueDate: 'all' | 'today' | 'tomorrow' | 'this-week' | 'this-month';
+  filters: {
+    search: string;
+    status: string;
+    priority: string;
+    dueDate: Date | null;
+  };
+  onFilterChange: (field: string, value: any) => void;
+  onResetFilters: () => void;
 }
 
 const TaskFilter: React.FC<TaskFilterProps> = ({
-  onSearch,
+  filters,
   onFilterChange,
-  onClearFilters,
-  availableTags,
+  onResetFilters,
 }) => {
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [filters, setFilters] = React.useState<TaskFilters>({
-    status: [],
-    priority: [],
-    tags: [],
-    dueDate: 'all',
-  });
-  const [activeFiltersCount, setActiveFiltersCount] = React.useState(0);
-
-  // Count active filters for the filter badge
-  React.useEffect(() => {
-    let count = 0;
-    if (filters.status.length) count++;
-    if (filters.priority.length) count++;
-    if (filters.tags.length) count++;
-    if (filters.dueDate !== 'all') count++;
-    
-    setActiveFiltersCount(count);
-  }, [filters]);
-
-  // Handle search input change
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    onSearch(value);
-  };
-
-  // Toggle filter values
-  const toggleFilter = (type: keyof TaskFilters, value: string) => {
-    setFilters(prev => {
-      let newFilters;
-      
-      if (type === 'dueDate') {
-        newFilters = {
-          ...prev,
-          [type]: value,
-        };
-      } else {
-        const currentValues = prev[type] as string[];
-        newFilters = {
-          ...prev,
-          [type]: currentValues.includes(value)
-            ? currentValues.filter(v => v !== value)
-            : [...currentValues, value],
-        };
-      }
-      
-      onFilterChange(newFilters);
-      return newFilters;
-    });
-  };
-
-  // Clear all filters
-  const handleClearFilters = () => {
-    setFilters({
-      status: [],
-      priority: [],
-      tags: [],
-      dueDate: 'all',
-    });
-    setSearchTerm('');
-    onClearFilters();
-  };
-
   return (
-    <div className="mb-6 space-y-2">
-      <div className="flex flex-col sm:flex-row gap-2">
+    <div className="mb-6 space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
           <Input
             placeholder="Search tasks..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={handleSearchChange}
+            className="pl-9"
+            value={filters.search}
+            onChange={(e) => onFilterChange('search', e.target.value)}
           />
-          {searchTerm && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setSearchTerm('');
-                onSearch('');
-              }}
-              className="absolute right-1 top-1 h-7 w-7"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          )}
         </div>
         
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex gap-1">
-              <Filter className="h-4 w-4" />
-              <span className="hidden sm:inline">Filter</span>
-              {activeFiltersCount > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1">
-                  {activeFiltersCount}
-                </Badge>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
-            <DropdownMenuCheckboxItem
-              checked={filters.status.includes('pending')}
-              onCheckedChange={() => toggleFilter('status', 'pending')}
-            >
-              Pending
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.status.includes('in-progress')}
-              onCheckedChange={() => toggleFilter('status', 'in-progress')}
-            >
-              In Progress
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.status.includes('complete')}
-              onCheckedChange={() => toggleFilter('status', 'complete')}
-            >
-              Complete
-            </DropdownMenuCheckboxItem>
-            
-            <DropdownMenuSeparator />
-            
-            <DropdownMenuLabel>Filter by Priority</DropdownMenuLabel>
-            <DropdownMenuCheckboxItem
-              checked={filters.priority.includes('high')}
-              onCheckedChange={() => toggleFilter('priority', 'high')}
-            >
-              High
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.priority.includes('medium')}
-              onCheckedChange={() => toggleFilter('priority', 'medium')}
-            >
-              Medium
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.priority.includes('low')}
-              onCheckedChange={() => toggleFilter('priority', 'low')}
-            >
-              Low
-            </DropdownMenuCheckboxItem>
-            
-            {availableTags.length > 0 && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Filter by Tag</DropdownMenuLabel>
-                {availableTags.map((tag) => (
-                  <DropdownMenuCheckboxItem
-                    key={tag}
-                    checked={filters.tags.includes(tag)}
-                    onCheckedChange={() => toggleFilter('tags', tag)}
+        <div className="flex gap-2">
+          <Select
+            value={filters.status}
+            onValueChange={(value) => onFilterChange('status', value)}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="in-progress">In Progress</SelectItem>
+              <SelectItem value="complete">Complete</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select
+            value={filters.priority}
+            onValueChange={(value) => onFilterChange('priority', value)}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Priorities</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[130px] justify-start text-left font-normal">
+                <Calendar className="mr-2 h-4 w-4" />
+                {filters.dueDate ? format(filters.dueDate, 'PPP') : <span>Due Date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={filters.dueDate || undefined}
+                onSelect={(date) => onFilterChange('dueDate', date)}
+                initialFocus
+              />
+              {filters.dueDate && (
+                <div className="p-3 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onFilterChange('dueDate', null)}
+                    className="w-full"
                   >
-                    {tag}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </>
-            )}
-            
-            <DropdownMenuSeparator />
-            
-            <DropdownMenuLabel>Filter by Due Date</DropdownMenuLabel>
-            <DropdownMenuCheckboxItem
-              checked={filters.dueDate === 'all'}
-              onCheckedChange={() => toggleFilter('dueDate', 'all')}
-            >
-              All Dates
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.dueDate === 'today'}
-              onCheckedChange={() => toggleFilter('dueDate', 'today')}
-            >
-              Due Today
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.dueDate === 'tomorrow'}
-              onCheckedChange={() => toggleFilter('dueDate', 'tomorrow')}
-            >
-              Due Tomorrow
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.dueDate === 'this-week'}
-              onCheckedChange={() => toggleFilter('dueDate', 'this-week')}
-            >
-              Due This Week
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.dueDate === 'this-month'}
-              onCheckedChange={() => toggleFilter('dueDate', 'this-month')}
-            >
-              Due This Month
-            </DropdownMenuCheckboxItem>
-            
-            <DropdownMenuSeparator />
-            
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start text-left px-2 font-normal h-8"
-              onClick={handleClearFilters}
-            >
-              Clear All Filters
-            </Button>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <Calendar className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Due Date</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuCheckboxItem
-              checked={filters.dueDate === 'all'}
-              onCheckedChange={() => toggleFilter('dueDate', 'all')}
-            >
-              All Dates
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.dueDate === 'today'}
-              onCheckedChange={() => toggleFilter('dueDate', 'today')}
-            >
-              Today
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.dueDate === 'tomorrow'}
-              onCheckedChange={() => toggleFilter('dueDate', 'tomorrow')}
-            >
-              Tomorrow
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.dueDate === 'this-week'}
-              onCheckedChange={() => toggleFilter('dueDate', 'this-week')}
-            >
-              This Week
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.dueDate === 'this-month'}
-              onCheckedChange={() => toggleFilter('dueDate', 'this-month')}
-            >
-              This Month
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+                    Clear Date
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
       
-      {/* Active filters display */}
-      {activeFiltersCount > 0 && (
-        <div className="flex flex-wrap gap-2 pt-2">
-          {filters.status.map(status => (
-            <Badge key={status} variant="secondary" className="px-2 py-1">
-              {status}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => toggleFilter('status', status)}
-                className="h-4 w-4 ml-1 -mr-1"
-              >
-                <X className="h-2 w-2" />
-              </Button>
-            </Badge>
-          ))}
-          
-          {filters.priority.map(priority => (
-            <Badge key={priority} variant="secondary" className="px-2 py-1">
-              {priority} priority
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => toggleFilter('priority', priority)}
-                className="h-4 w-4 ml-1 -mr-1"
-              >
-                <X className="h-2 w-2" />
-              </Button>
-            </Badge>
-          ))}
-          
-          {filters.tags.map(tag => (
-            <Badge key={tag} variant="secondary" className="px-2 py-1">
-              #{tag}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => toggleFilter('tags', tag)}
-                className="h-4 w-4 ml-1 -mr-1"
-              >
-                <X className="h-2 w-2" />
-              </Button>
-            </Badge>
-          ))}
-          
-          {filters.dueDate !== 'all' && (
-            <Badge variant="secondary" className="px-2 py-1">
-              Due: {filters.dueDate.replace('-', ' ')}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => toggleFilter('dueDate', 'all')}
-                className="h-4 w-4 ml-1 -mr-1"
-              >
-                <X className="h-2 w-2" />
-              </Button>
-            </Badge>
-          )}
-          
+      {(filters.search || filters.status || filters.priority || filters.dueDate) && (
+        <div className="flex justify-end">
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleClearFilters}
-            className="text-xs h-7"
+            onClick={onResetFilters}
+            className="text-muted-foreground"
           >
-            Clear All
+            <Filter className="mr-2 h-4 w-4" />
+            Reset Filters
           </Button>
         </div>
       )}

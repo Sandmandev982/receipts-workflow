@@ -1,236 +1,169 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bell, X, Check } from 'lucide-react';
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
-} from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Bell } from 'lucide-react';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { Task } from '@/components/tasks/TaskCard';
-import { format, isToday, addMinutes, isAfter } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { NotificationRow } from '@/types/database.types';
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  time: Date;
-  read: boolean;
-  taskId?: string;
-}
-
-interface NotificationCenterProps {
-  tasks: Task[];
-  onTaskUpdate: (taskId: string) => void;
-}
-
-const NotificationCenter: React.FC<NotificationCenterProps> = ({ tasks, onTaskUpdate }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [open, setOpen] = useState(false);
+const NotificationCenter: React.FC = () => {
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [open, setOpen] = useState(false);
 
-  // Generate notifications based on tasks and their due dates/reminders
+  // Fetch notifications on component mount and when user changes
   useEffect(() => {
-    const newNotifications: Notification[] = [];
-    
-    tasks.forEach(task => {
-      if (task.status === 'complete') return;
+    if (user) {
+      fetchNotifications();
       
-      const now = new Date();
-      const dueDate = new Date(task.dueDate);
-      
-      // Add notification for tasks due today
-      if (isToday(dueDate) && task.status !== 'complete') {
-        newNotifications.push({
-          id: `${task.id}-due-today`,
-          title: 'Task Due Today',
-          message: `"${task.title}" is due today${task.dueTime ? ` at ${task.dueTime}` : ''}`,
-          time: new Date(),
-          read: false,
-          taskId: task.id,
-        });
-      }
-      
-      // Add notification for tasks with reminders
-      if (task.reminderSet && task.reminderTime) {
-        const reminderOffset = task.reminderTime.includes('minutes') 
-          ? parseInt(task.reminderTime) 
-          : task.reminderTime.includes('hour') 
-            ? parseInt(task.reminderTime) * 60 
-            : 24 * 60; // default to 1 day in minutes
-        
-        const reminderTime = addMinutes(dueDate, -reminderOffset);
-        
-        if (isAfter(now, reminderTime) && task.status !== 'complete') {
-          newNotifications.push({
-            id: `${task.id}-reminder`,
-            title: 'Task Reminder',
-            message: `Reminder for "${task.title}" due ${format(dueDate, 'PPP')}${task.dueTime ? ` at ${task.dueTime}` : ''}`,
-            time: reminderTime,
-            read: false,
-            taskId: task.id,
-          });
-        }
-      }
-    });
-    
-    // Only set if there are new notifications to avoid infinite loops
-    if (newNotifications.length > 0) {
-      setNotifications(prev => {
-        const existingIds = new Set(prev.map(n => n.id));
-        const filteredNew = newNotifications.filter(n => !existingIds.has(n.id));
-        
-        // Show toast for new notifications
-        filteredNew.forEach(notification => {
-          toast(notification.title, {
-            description: notification.message,
-            action: {
-              label: "View",
-              onClick: () => {
-                setOpen(true);
-                if (notification.taskId) {
-                  onTaskUpdate(notification.taskId);
-                }
-              },
-            },
-          });
-        });
-        
-        return [...prev, ...filteredNew].sort((a, b) => 
-          b.time.getTime() - a.time.getTime()
-        );
-      });
+      // Set up real-time subscription for new notifications
+      const subscription = supabase
+        .channel('notifications_changes')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        }, (payload) => {
+          const newNotification = payload.new as NotificationRow;
+          setNotifications(prevNotifications => [newNotification, ...prevNotifications]);
+          setUnreadCount(prevCount => prevCount + 1);
+          
+          // Show toast for due tasks
+          if (newNotification.title.includes('Due soon')) {
+            toast.warning(newNotification.message, {
+              duration: 5000,
+            });
+          }
+          
+          // Show toast for completed tasks
+          if (newNotification.message.includes('completed')) {
+            toast.success(newNotification.message, {
+              duration: 5000,
+            });
+          }
+        })
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
     }
-  }, [tasks, onTaskUpdate]);
+  }, [user]);
 
-  // Update unread count
-  useEffect(() => {
-    setUnreadCount(notifications.filter(n => !n.read).length);
-  }, [notifications]);
+  const fetchNotifications = async () => {
+    if (!user) return;
 
-  // Mark notification as read
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true } 
-          : notification
-      )
-    );
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      setNotifications(data || []);
+      setUnreadCount(data?.filter(notif => !notif.read).length || 0);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
   };
 
-  // Mark all notifications as read
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
+  const markAsRead = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setNotifications(prevNotifications => 
+        prevNotifications.map(notif => 
+          notif.id === id ? { ...notif, read: true } : notif
+        )
+      );
+      setUnreadCount(prevCount => Math.max(0, prevCount - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
-  // Remove a notification
-  const removeNotification = (id: string) => {
-    setNotifications(prev => 
-      prev.filter(notification => notification.id !== id)
-    );
-  };
+  const markAllAsRead = async () => {
+    if (!user || notifications.length === 0) return;
 
-  // Clear all notifications
-  const clearAllNotifications = () => {
-    setNotifications([]);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) throw error;
+
+      setNotifications(prevNotifications => 
+        prevNotifications.map(notif => ({ ...notif, read: true }))
+      );
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
   };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+          <Bell size={20} />
           {unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-1 -right-1 px-1 min-w-[18px] h-[18px] text-[10px]"
-            >
-              {unreadCount > 99 ? '99+' : unreadCount}
+            <Badge variant="destructive" className="absolute -top-1 -right-1 px-1.5 py-0.5 min-w-5 h-5 flex items-center justify-center text-xs">
+              {unreadCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
-        <div className="flex items-center justify-between p-4">
+        <div className="flex justify-between items-center p-3 border-b">
           <h3 className="font-medium">Notifications</h3>
-          <div className="flex gap-1">
-            {unreadCount > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={markAllAsRead}
-                className="h-7 px-2 text-xs"
-              >
-                Mark all read
-              </Button>
-            )}
-            {notifications.length > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={clearAllNotifications}
-                className="h-7 px-2 text-xs"
-              >
-                Clear all
-              </Button>
-            )}
-          </div>
-        </div>
-        
-        <Separator />
-        
-        <div className="max-h-[300px] overflow-y-auto">
-          {notifications.length > 0 ? (
-            notifications.map((notification) => (
-              <div 
-                key={notification.id} 
-                className={`p-3 hover:bg-muted flex items-start gap-2 ${
-                  !notification.read ? 'bg-muted/50' : ''
-                }`}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start">
-                    <h4 className="font-medium text-sm">{notification.title}</h4>
-                    <div className="flex gap-1">
-                      {!notification.read && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => markAsRead(notification.id)}
-                          className="h-5 w-5"
-                        >
-                          <Check className="h-3 w-3" />
-                        </Button>
-                      )}
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => removeNotification(notification.id)}
-                        className="h-5 w-5"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{notification.message}</p>
-                  <span className="text-xs text-muted-foreground mt-1 block">
-                    {format(notification.time, 'MMM d, h:mm a')}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="py-8 text-center text-muted-foreground">
-              <p>No notifications</p>
-            </div>
+          {unreadCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+              Mark all as read
+            </Button>
           )}
         </div>
+        <ScrollArea className="h-80">
+          {notifications.length > 0 ? (
+            <div className="divide-y">
+              {notifications.map((notification) => (
+                <div 
+                  key={notification.id} 
+                  className={`p-3 ${!notification.read ? 'bg-accent/50' : ''}`}
+                  onClick={() => !notification.read && markAsRead(notification.id)}
+                >
+                  <div className="flex justify-between items-start">
+                    <h4 className="font-medium">{notification.title}</h4>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(notification.created_at), 'HH:mm, MMM d')}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+              <p className="text-muted-foreground">No notifications yet</p>
+            </div>
+          )}
+        </ScrollArea>
       </PopoverContent>
     </Popover>
   );

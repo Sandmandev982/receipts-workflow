@@ -35,10 +35,10 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
       dueDate: data.dueDate,
       dueTime: data.dueTime,
       reminderSet: data.reminderEnabled,
-      reminderTime: data.reminderEnabled ? data.reminderTime : undefined,
-      progress: data.progress,
+      reminderTime: data.reminderEnabled ? data.reminderTime : null,
+      progress: parseInt(data.progress, 10),
       assignedTo: task?.assignedTo,
-      tags: tags.length > 0 ? tags : undefined,
+      tags: tags.length > 0 ? tags : null,
     });
     onOpenChange(false);
   };

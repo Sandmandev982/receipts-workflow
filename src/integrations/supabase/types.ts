@@ -44,9 +44,14 @@ export type Database = {
           created_at: string
           description: string | null
           due_date: string | null
+          due_time: string | null
           id: string
           priority: string
+          progress: number | null
+          reminder_set: boolean | null
+          reminder_time: string | null
           status: string
+          tags: string[] | null
           title: string
           updated_at: string
           user_id: string
@@ -55,9 +60,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          due_time?: string | null
           id?: string
           priority?: string
+          progress?: number | null
+          reminder_set?: boolean | null
+          reminder_time?: string | null
           status?: string
+          tags?: string[] | null
           title: string
           updated_at?: string
           user_id: string
@@ -66,9 +76,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          due_time?: string | null
           id?: string
           priority?: string
+          progress?: number | null
+          reminder_set?: boolean | null
+          reminder_time?: string | null
           status?: string
+          tags?: string[] | null
           title?: string
           updated_at?: string
           user_id?: string
