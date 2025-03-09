@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CalendarIcon, Clock, BellRing, Tag } from 'lucide-react';
+import { CalendarIcon, Clock, BellRing, Tag, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Task } from './types';
@@ -45,15 +46,22 @@ const formSchema = z.object({
   progress: z.number().min(0).max(100).default(0),
   tags: z.string().optional(),
   assignedTo: z.string().optional(),
+  teamId: z.string().optional(),
 });
+
+interface TeamOption {
+  id: string;
+  name: string;
+}
 
 interface TaskFormProps {
   task?: Task;
   onSubmit: (data: z.infer<typeof formSchema>) => void;
   teamMembers?: Array<{ id: string; name: string }>;
+  teams?: TeamOption[];
 }
 
-const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, teamMembers = [] }) => {
+const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, teamMembers = [], teams = [] }) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: task ? {
@@ -68,6 +76,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, teamMembers = [] })
       progress: task.progress || 0,
       tags: task.tags ? task.tags.join(', ') : '',
       assignedTo: task.assignedTo?.id || '',
+      teamId: task.teamId || '',
     } : {
       title: '',
       description: '',
@@ -80,6 +89,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, teamMembers = [] })
       progress: 0,
       tags: '',
       assignedTo: '',
+      teamId: '',
     },
   });
 
@@ -222,7 +232,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, teamMembers = [] })
                       className="ml-2"
                       onClick={() => {
                         // Here you could show a time picker component
-                        // For now, we'll just set a default time
                         field.onChange("12:00 PM");
                       }}
                     >
@@ -236,31 +245,61 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, teamMembers = [] })
           />
         </div>
         
-        {teamMembers.length > 0 && (
-          <FormField
-            control={form.control}
-            name="assignedTo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Assign To</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Assign task to..." />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
-                    {teamMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {teams.length > 0 && (
+            <FormField
+              control={form.control}
+              name="teamId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assign to Team</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a team" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Personal Task</SelectItem>
+                      {teams.map((team) => (
+                        <SelectItem key={team.id} value={team.id}>
+                          {team.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          
+          {teamMembers.length > 0 && (
+            <FormField
+              control={form.control}
+              name="assignedTo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assign To</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Assign task to..." />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Unassigned</SelectItem>
+                      {teamMembers.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
         
         <FormField
           control={form.control}

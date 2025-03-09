@@ -17,6 +17,7 @@ export interface Task {
     initials: string;
   };
   tags?: string[];
+  teamId?: string;
 }
 
 export type TaskStatus = Task['status'];
