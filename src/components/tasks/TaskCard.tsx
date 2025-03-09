@@ -162,7 +162,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   return (
-    <div className={cn('task-card', getPriorityClass(task.priority), "p-4 border rounded-lg shadow-sm hover:shadow transition-shadow", task.status === 'complete' ? "opacity-75" : "")}>
+    <div className={cn(
+      'task-card', 
+      getPriorityClass(task.priority), 
+      "p-4 border rounded-lg shadow-sm hover:shadow transition-shadow", 
+      task.status === 'complete' ? "opacity-75" : ""
+    )}>
       <div className="flex justify-between items-start mb-3">
         <h3 className="font-medium text-card-foreground truncate">{task.title}</h3>
         <DropdownMenu>
@@ -209,8 +214,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </div>
           <div className="w-full bg-muted rounded-full h-2">
             <div 
-              className={`${task.status === 'complete' ? 'bg-receipts-success' : 'bg-primary'} h-2 rounded-full`}
-              style={{ width: `${task.status === 'complete' ? '100' : task.progress}%` }}
+              className={task.status === 'complete' ? 'bg-receipts-success h-2 rounded-full' : 'bg-primary h-2 rounded-full'}
+              style={{ width: `${task.status === 'complete' ? 100 : task.progress}%` }}
             ></div>
           </div>
         </div>

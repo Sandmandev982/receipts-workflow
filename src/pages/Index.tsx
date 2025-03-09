@@ -17,6 +17,12 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  // Define team members for demonstration
+  // In a real application, these would come from your database
+  const teamMembers = [
+    { id: user?.id || 'current-user', name: user?.email?.split('@')[0] || 'Current User' }
+  ];
 
   // Fetch tasks from Supabase
   useEffect(() => {
@@ -40,7 +46,13 @@ const Index = () => {
           priority: task.priority as Task['priority'],
           status: task.status as Task['status'],
           dueDate: task.due_date ? new Date(task.due_date) : new Date(),
+          dueTime: task.due_time,
+          reminderSet: task.reminder_set,
+          reminderTime: task.reminder_time,
+          progress: task.progress,
+          tags: task.tags,
           assignedTo: {
+            id: user.id,
             name: user.email?.split('@')[0] || 'User',
             initials: (user.email?.substring(0, 2) || 'U').toUpperCase(),
           },
@@ -93,6 +105,11 @@ const Index = () => {
           priority: newTask.priority,
           status: newTask.status,
           due_date: newTask.dueDate.toISOString(),
+          due_time: newTask.dueTime,
+          reminder_set: newTask.reminderSet,
+          reminder_time: newTask.reminderTime,
+          progress: newTask.progress,
+          tags: newTask.tags,
           user_id: user.id,
         })
         .select()
@@ -109,7 +126,13 @@ const Index = () => {
         priority: taskData.priority as Task['priority'],
         status: taskData.status as Task['status'],
         dueDate: new Date(taskData.due_date || Date.now()),
+        dueTime: taskData.due_time,
+        reminderSet: taskData.reminder_set,
+        reminderTime: taskData.reminder_time,
+        progress: taskData.progress,
+        tags: taskData.tags,
         assignedTo: {
+          id: user.id,
           name: user.email?.split('@')[0] || 'User',
           initials: (user.email?.substring(0, 2) || 'U').toUpperCase(),
         },
@@ -180,6 +203,11 @@ const Index = () => {
             priority: updatedTask.priority,
             status: updatedTask.status,
             due_date: updatedTask.dueDate.toISOString(),
+            due_time: updatedTask.dueTime,
+            reminder_set: updatedTask.reminderSet,
+            reminder_time: updatedTask.reminderTime,
+            progress: updatedTask.progress,
+            tags: updatedTask.tags,
           })
           .eq('id', updatedTask.id);
         
@@ -197,6 +225,29 @@ const Index = () => {
     } catch (error: any) {
       console.error('Error updating task:', error);
       toast.error('Failed to update task');
+    }
+  };
+
+  const handleSetReminder = async (id: string, reminderTime: string) => {
+    try {
+      // Update reminder in Supabase
+      const { error } = await supabase
+        .from('tasks')
+        .update({ 
+          reminder_set: true,
+          reminder_time: reminderTime
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      // Update task in state
+      setTasks(tasks.map(task => 
+        task.id === id ? { ...task, reminderSet: true, reminderTime } : task
+      ));
+    } catch (error: any) {
+      console.error('Error setting reminder:', error);
+      toast.error('Failed to set reminder');
     }
   };
 
@@ -253,7 +304,9 @@ const Index = () => {
           onEditTask={handleEditTask}
           onDeleteTask={handleDeleteTask}
           onStatusChange={handleStatusChange}
+          onSetReminder={handleSetReminder}
           loading={loading}
+          teamMembers={teamMembers}
         />
         
         <TaskEditDialog
@@ -261,6 +314,7 @@ const Index = () => {
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           onSubmit={handleUpdateTask}
+          teamMembers={teamMembers}
         />
       </div>
     </Layout>

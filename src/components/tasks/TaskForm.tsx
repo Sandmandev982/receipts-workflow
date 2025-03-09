@@ -45,14 +45,16 @@ const formSchema = z.object({
   reminderTime: z.string().optional(),
   progress: z.number().min(0).max(100).default(0),
   tags: z.string().optional(),
+  assignedTo: z.string().optional(),
 });
 
 interface TaskFormProps {
   task?: Task;
   onSubmit: (data: z.infer<typeof formSchema>) => void;
+  teamMembers?: Array<{ id: string; name: string }>;
 }
 
-const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
+const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, teamMembers = [] }) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: task ? {
@@ -66,6 +68,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
       reminderTime: task.reminderTime || '1 hour before',
       progress: task.progress || 0,
       tags: task.tags ? task.tags.join(', ') : '',
+      assignedTo: task.assignedTo?.id || '',
     } : {
       title: '',
       description: '',
@@ -77,6 +80,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
       reminderTime: '1 hour before',
       progress: 0,
       tags: '',
+      assignedTo: '',
     },
   });
 
@@ -232,6 +236,32 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit }) => {
             )}
           />
         </div>
+        
+        {teamMembers.length > 0 && (
+          <FormField
+            control={form.control}
+            name="assignedTo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Assign To</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Assign task to..." />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="">Unassigned</SelectItem>
+                    {teamMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         
         <FormField
           control={form.control}
