@@ -1,91 +1,97 @@
+import React from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { useMobile } from "@/hooks/useMobile";
+import {
+  LayoutDashboard,
+  Users,
+  Calendar as CalendarIcon,
+  Settings,
+  LogOut,
+  MessageSquare,
+} from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { Sidebar } from '@/components/ui/sidebar';
-import { SidebarContent, SidebarGroup, SidebarGroupContent } from '@/components/ui/sidebar';
-import { useOnboarding } from '@/hooks/useOnboarding';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { 
-  Home, 
-  CalendarDays, 
-  Users, 
-  Settings, 
-  PlusCircle, 
-  CheckCircle2,
-  User,
-  LogOut
-} from 'lucide-react';
+interface AppSidebarProps {
+  onClose?: () => void;
+}
 
-const AppSidebar: React.FC = () => {
-  const { hasCompletedOnboarding } = useOnboarding();
-  const isMobile = useIsMobile();
+const AppSidebar: React.FC<AppSidebarProps> = ({ onClose }) => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const isMobile = useMobile();
+  const pathname = useLocation().pathname;
 
-  // Determine if sidebar should be collapsed based on mobile state
-  const collapsedMode = isMobile ? "icon" : "none";
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  const navLinks = [
+    { href: "/", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
+    { href: "/teams", label: "Teams", icon: <Users className="h-5 w-5" /> },
+    { href: "/calendar", label: "Calendar", icon: <CalendarIcon className="h-5 w-5" /> },
+    { href: "/messages", label: "Messages", icon: <MessageSquare className="h-5 w-5" /> },
+    { href: "/profile", label: "Profile", icon: <Settings className="h-5 w-5" /> },
+  ];
 
   return (
-    <Sidebar>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <NavLink to="/" className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent">
-              <Home className="h-4 w-4" />
-              <span>Home</span>
-            </NavLink>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <NavLink to="/tasks" className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent">
-              <CheckCircle2 className="h-4 w-4" />
-              <span>My Tasks</span>
-            </NavLink>
-            <NavLink to="/tasks/new" className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent">
-              <PlusCircle className="h-4 w-4" />
-              <span>Add Task</span>
-            </NavLink>
-            <NavLink to="/calendar" className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent">
-              <CalendarDays className="h-4 w-4" />
-              <span>Calendar</span>
-            </NavLink>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <NavLink to="/teams" className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent">
-              <Users className="h-4 w-4" />
-              <span>Teams</span>
-            </NavLink>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {!hasCompletedOnboarding && (
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <NavLink to="/onboarding" className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent">
-                <Settings className="h-4 w-4" />
-                <span>Onboarding</span>
-              </NavLink>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <NavLink to="/profile" className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent">
-              <User className="h-4 w-4" />
-              <span>Profile</span>
-            </NavLink>
-            <NavLink to="/auth/logout" className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent">
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
-            </NavLink>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+    <Sheet open={isMobile} onOpenChange={isMobile ? onClose : undefined}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <LayoutDashboard className="h-[1.2rem] w-[1.2rem]" />
+          <span className="sr-only">Toggle Menu</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-80">
+        <SheetHeader className="text-left">
+          <SheetTitle>Menu</SheetTitle>
+          <SheetDescription>
+            Navigate through your Receipts workspace.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="py-4">
+          <div className="px-4 py-2">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={user?.user_metadata.avatar_url} />
+              <AvatarFallback>{user?.user_metadata.first_name?.[0]}{user?.user_metadata.last_name?.[0]}</AvatarFallback>
+            </Avatar>
+            <div className="mt-2">
+              <p className="font-semibold">{user?.user_metadata.first_name} {user?.user_metadata.last_name}</p>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+            </div>
+          </div>
+          <div className="grid gap-4">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={`flex items-center space-x-2 rounded-md p-2 hover:bg-secondary ${pathname === link.href ? 'bg-secondary' : ''}`}
+                onClick={onClose}
+              >
+                {link.icon}
+                <span>{link.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div className="absolute bottom-4 w-full">
+          <Button variant="outline" className="w-full" onClick={handleSignOut}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 
