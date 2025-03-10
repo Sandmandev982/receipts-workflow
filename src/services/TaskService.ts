@@ -1,50 +1,37 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Task } from '@/components/tasks/types';
-import { TaskRow } from '@/types/database.types';
-import { toast } from 'sonner';
+import { Task, TaskPriority, TaskStatus } from '@/components/tasks/types';
+import { format } from 'date-fns';
+import { NotificationService } from './NotificationService';
 
-export const TaskService = {
-  async fetchTasks(userId: string): Promise<Task[]> {
+export class TaskService {
+  static async fetchTasks(userId: string): Promise<Task[]> {
     try {
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
-      
-      // Transform Supabase data to match our Task interface
-      const formattedTasks: Task[] = (data as TaskRow[]).map(task => ({
-        id: task.id,
-        title: task.title,
-        description: task.description || '',
-        priority: task.priority as Task['priority'],
-        status: task.status as Task['status'],
-        dueDate: task.due_date ? new Date(task.due_date) : new Date(),
-        dueTime: task.due_time,
-        reminderSet: task.reminder_set,
-        reminderTime: task.reminder_time,
-        progress: task.progress,
-        tags: task.tags,
-        assignedTo: {
-          id: userId,
-          name: userId.split('@')[0] || 'User',
-          initials: (userId.substring(0, 2) || 'U').toUpperCase(),
-        },
+
+      return data.map(task => ({
+        ...task,
+        dueDate: task.due_date ? new Date(task.due_date) : null,
+        dueTime: task.due_time || undefined,
+        reminderSet: task.reminder_set || false,
+        reminderTime: task.reminder_time || undefined,
+        priority: task.priority as TaskPriority,
+        status: task.status as TaskStatus,
       }));
-      
-      return formattedTasks;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching tasks:', error);
-      toast.error('Failed to load tasks');
       return [];
     }
-  },
+  }
 
-  async addTask(task: Omit<Task, 'id'>, userId: string): Promise<Task | null> {
+  static async addTask(task: Omit<Task, 'id'>, userId: string): Promise<Task | null> {
     try {
-      // Insert task into Supabase
       const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -52,50 +39,42 @@ export const TaskService = {
           description: task.description,
           priority: task.priority,
           status: task.status,
-          due_date: task.dueDate.toISOString(),
+          due_date: task.dueDate ? format(task.dueDate, 'yyyy-MM-dd') : null,
           due_time: task.dueTime,
           reminder_set: task.reminderSet,
           reminder_time: task.reminderTime,
           progress: task.progress,
           tags: task.tags,
-          user_id: userId,
+          user_id: userId
         })
         .select()
         .single();
-      
+
       if (error) throw error;
-      
-      // Create task object with Supabase data
-      const taskData = data as TaskRow;
-      const newTask: Task = {
-        id: taskData.id,
-        title: taskData.title,
-        description: taskData.description || '',
-        priority: taskData.priority as Task['priority'],
-        status: taskData.status as Task['status'],
-        dueDate: new Date(taskData.due_date || Date.now()),
-        dueTime: taskData.due_time,
-        reminderSet: taskData.reminder_set,
-        reminderTime: taskData.reminder_time,
-        progress: taskData.progress,
-        tags: taskData.tags,
-        assignedTo: {
-          id: userId,
-          name: userId.split('@')[0] || 'User',
-          initials: (userId.substring(0, 2) || 'U').toUpperCase(),
-        },
+
+      // Create notification for new task
+      await NotificationService.createNotification({
+        userId,
+        title: 'New Task Created',
+        message: `You've created a new task: ${task.title}`
+      });
+
+      return {
+        ...data,
+        dueDate: data.due_date ? new Date(data.due_date) : null,
+        dueTime: data.due_time || undefined,
+        reminderSet: data.reminder_set || false,
+        reminderTime: data.reminder_time || undefined,
+        priority: data.priority as TaskPriority,
+        status: data.status as TaskStatus,
       };
-      
-      toast.success('Task added successfully');
-      return newTask;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error adding task:', error);
-      toast.error('Failed to add task');
       return null;
     }
-  },
+  }
 
-  async updateTask(task: Task): Promise<boolean> {
+  static async updateTask(task: Task): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('tasks')
@@ -104,7 +83,7 @@ export const TaskService = {
           description: task.description,
           priority: task.priority,
           status: task.status,
-          due_date: task.dueDate.toISOString(),
+          due_date: task.dueDate ? format(task.dueDate, 'yyyy-MM-dd') : null,
           due_time: task.dueTime,
           reminder_set: task.reminderSet,
           reminder_time: task.reminderTime,
@@ -112,72 +91,134 @@ export const TaskService = {
           tags: task.tags,
         })
         .eq('id', task.id);
-      
+
       if (error) throw error;
-      
-      toast.success('Task updated successfully');
+
+      // Get user ID for this task
+      const { data: taskData } = await supabase
+        .from('tasks')
+        .select('user_id')
+        .eq('id', task.id)
+        .single();
+
+      if (taskData) {
+        // Create notification for updated task
+        await NotificationService.createNotification({
+          userId: taskData.user_id,
+          title: 'Task Updated',
+          message: `Task "${task.title}" has been updated`
+        });
+      }
+
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating task:', error);
-      toast.error('Failed to update task');
       return false;
     }
-  },
+  }
 
-  async deleteTask(id: string): Promise<boolean> {
+  static async deleteTask(id: string): Promise<boolean> {
     try {
+      // First get the task to record its title for the notification
+      const { data: taskData } = await supabase
+        .from('tasks')
+        .select('title, user_id')
+        .eq('id', id)
+        .single();
+
       const { error } = await supabase
         .from('tasks')
         .delete()
         .eq('id', id);
-      
+
       if (error) throw error;
-      
-      toast.success('Task deleted successfully');
+
+      if (taskData) {
+        // Create notification for deleted task
+        await NotificationService.createNotification({
+          userId: taskData.user_id,
+          title: 'Task Deleted',
+          message: `Task "${taskData.title}" has been deleted`
+        });
+      }
+
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting task:', error);
-      toast.error('Failed to delete task');
       return false;
     }
-  },
+  }
 
-  async updateTaskStatus(id: string, status: Task['status']): Promise<boolean> {
+  static async updateTaskStatus(id: string, status: TaskStatus): Promise<boolean> {
     try {
+      // Get task data first for notification
+      const { data: taskData } = await supabase
+        .from('tasks')
+        .select('title, user_id')
+        .eq('id', id)
+        .single();
+
       const { error } = await supabase
         .from('tasks')
-        .update({ status })
+        .update({
+          status
+        })
         .eq('id', id);
-      
+
       if (error) throw error;
-      
-      toast.success(`Task marked as ${status}`);
+
+      if (taskData) {
+        // Create notification for status change
+        const statusMessage = status === 'complete' 
+          ? `Task "${taskData.title}" has been completed` 
+          : `Task "${taskData.title}" is now ${status}`;
+          
+        await NotificationService.createNotification({
+          userId: taskData.user_id,
+          title: 'Task Status Update',
+          message: statusMessage
+        });
+      }
+
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating task status:', error);
-      toast.error('Failed to update task status');
       return false;
     }
-  },
+  }
 
-  async setTaskReminder(id: string, reminderTime: string): Promise<boolean> {
+  static async setTaskReminder(id: string, reminderTime: string): Promise<boolean> {
     try {
+      // Get task data first for notification
+      const { data: taskData } = await supabase
+        .from('tasks')
+        .select('title, user_id')
+        .eq('id', id)
+        .single();
+
       const { error } = await supabase
         .from('tasks')
-        .update({ 
+        .update({
           reminder_set: true,
           reminder_time: reminderTime
         })
         .eq('id', id);
-      
+
       if (error) throw error;
-      
-      toast.success('Reminder set successfully');
+
+      if (taskData) {
+        // Create notification for reminder set
+        await NotificationService.createNotification({
+          userId: taskData.user_id,
+          title: 'Reminder Set',
+          message: `A reminder has been set for task "${taskData.title}"`
+        });
+      }
+
       return true;
-    } catch (error: any) {
-      console.error('Error setting reminder:', error);
-      toast.error('Failed to set reminder');
+    } catch (error) {
+      console.error('Error setting task reminder:', error);
       return false;
     }
   }
-};
+}
