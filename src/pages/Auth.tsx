@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
+import { toast } from 'sonner';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -12,14 +13,20 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState<string>('login');
 
   useEffect(() => {
+    // Add debug logging
+    console.log('Auth Component - Current session:', session);
+    
     // Redirect to dashboard if user is already logged in
     if (session) {
+      console.log('User is authenticated, redirecting to dashboard');
+      toast.success('Successfully logged in!');
       navigate('/');
     }
   }, [session, navigate]);
 
   const handleRegistrationSuccess = () => {
     setActiveTab('login');
+    toast.success('Registration successful! Please log in.');
   };
 
   return (

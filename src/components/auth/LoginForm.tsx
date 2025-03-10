@@ -33,19 +33,24 @@ const LoginForm = () => {
   const handleSignIn = async (data: LoginFormValues) => {
     try {
       setLoading(true);
+      console.log('Attempting to sign in with:', data.email);
       
       const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Login error:', error);
+        throw error;
+      }
       
-      toast.success('Successfully logged in!');
-      navigate('/');
+      console.log('Login successful');
+      // Note: No need to navigate here as the Auth component will handle it
+      
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred during login');
       console.error('Login error:', error);
+      toast.error(error.message || 'An error occurred during login');
     } finally {
       setLoading(false);
     }
