@@ -9,6 +9,12 @@ import { Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
+interface MessageProfile {
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+}
+
 interface Message {
   id: string;
   content: string;
@@ -17,11 +23,7 @@ interface Message {
   team_id: string | null;
   created_at: string;
   read: boolean;
-  profile?: {
-    first_name: string | null;
-    last_name: string | null;
-    avatar_url: string | null;
-  };
+  profile?: MessageProfile;
 }
 
 interface User {
@@ -86,7 +88,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ recipientId, teamId }
       
       let query = supabase
         .from('messages')
-        .select('*, profile:profiles!messages_sender_id_fkey(first_name, last_name, avatar_url)')
+        .select('*')
         .or(`sender_id.eq.${user?.id},recipient_id.eq.${user?.id}`);
       
       if (recipientId) {
@@ -111,7 +113,29 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ recipientId, teamId }
           );
         }
         
-        setMessages(filteredMessages);
+        // Now fetch profile information for each sender
+        const senderIds = [...new Set(filteredMessages.map(msg => msg.sender_id))];
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url')
+          .in('id', senderIds);
+          
+        if (profilesError) throw profilesError;
+        
+        // Attach profile information to each message
+        const messagesWithProfiles = filteredMessages.map(msg => {
+          const senderProfile = profilesData?.find(profile => profile.id === msg.sender_id);
+          return {
+            ...msg,
+            profile: senderProfile ? {
+              first_name: senderProfile.first_name,
+              last_name: senderProfile.last_name,
+              avatar_url: senderProfile.avatar_url
+            } : undefined
+          };
+        });
+        
+        setMessages(messagesWithProfiles);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -160,9 +184,16 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ recipientId, teamId }
                 .eq('id', newMsg.sender_id)
                 .single();
                 
-              newMsg.profile = profileData || undefined;
+              const messageWithProfile = {
+                ...newMsg,
+                profile: profileData ? {
+                  first_name: profileData.first_name,
+                  last_name: profileData.last_name,
+                  avatar_url: profileData.avatar_url
+                } : undefined
+              };
               
-              setMessages(prev => [...prev, newMsg]);
+              setMessages(prev => [...prev, messageWithProfile]);
               
               // Mark as read if it's addressed to current user
               if (newMsg.recipient_id === user?.id) {
@@ -177,9 +208,16 @@ const MessageComposer: React.FC<MessageComposerProps> = ({ recipientId, teamId }
               .eq('id', newMsg.sender_id)
               .single();
               
-            newMsg.profile = profileData || undefined;
+            const messageWithProfile = {
+              ...newMsg,
+              profile: profileData ? {
+                first_name: profileData.first_name,
+                last_name: profileData.last_name,
+                avatar_url: profileData.avatar_url
+              } : undefined
+            };
             
-            setMessages(prev => [...prev, newMsg]);
+            setMessages(prev => [...prev, messageWithProfile]);
           }
         }
       )

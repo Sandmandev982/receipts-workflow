@@ -10,17 +10,19 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { getTeamMembers } from '@/lib/api';
 
+interface MessageProfile {
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+}
+
 interface Message {
   id: string;
   content: string;
   sender_id: string;
   team_id: string;
   created_at: string;
-  profile?: {
-    first_name: string | null;
-    last_name: string | null;
-    avatar_url: string | null;
-  };
+  profile?: MessageProfile;
 }
 
 interface TeamMessageListProps {
@@ -72,14 +74,36 @@ const TeamMessagesList: React.FC<TeamMessageListProps> = ({ teamId }) => {
       
       const { data, error } = await supabase
         .from('messages')
-        .select('*, profile:profiles!messages_sender_id_fkey(first_name, last_name, avatar_url)')
+        .select('*')
         .eq('team_id', teamId)
         .order('created_at', { ascending: true });
       
       if (error) throw error;
       
       if (data) {
-        setMessages(data);
+        // Now fetch profile information for each sender
+        const senderIds = [...new Set(data.map(msg => msg.sender_id))];
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url')
+          .in('id', senderIds);
+          
+        if (profilesError) throw profilesError;
+        
+        // Attach profile information to each message
+        const messagesWithProfiles = data.map(msg => {
+          const senderProfile = profilesData?.find(profile => profile.id === msg.sender_id);
+          return {
+            ...msg,
+            profile: senderProfile ? {
+              first_name: senderProfile.first_name,
+              last_name: senderProfile.last_name,
+              avatar_url: senderProfile.avatar_url
+            } : undefined
+          };
+        });
+        
+        setMessages(messagesWithProfiles);
       }
     } catch (error) {
       console.error('Error fetching team messages:', error);
@@ -110,9 +134,16 @@ const TeamMessagesList: React.FC<TeamMessageListProps> = ({ teamId }) => {
             .eq('id', newMsg.sender_id)
             .single();
             
-          newMsg.profile = profileData || undefined;
+          const messageWithProfile = {
+            ...newMsg,
+            profile: profileData ? {
+              first_name: profileData.first_name,
+              last_name: profileData.last_name,
+              avatar_url: profileData.avatar_url
+            } : undefined
+          };
           
-          setMessages(prev => [...prev, newMsg]);
+          setMessages(prev => [...prev, messageWithProfile]);
         }
       )
       .subscribe();

@@ -9,7 +9,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { useMobile } from "@/hooks/useMobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   LayoutDashboard,
   Users,
@@ -29,7 +29,7 @@ interface AppSidebarProps {
 const AppSidebar: React.FC<AppSidebarProps> = ({ onClose }) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const pathname = useLocation().pathname;
 
   const handleSignOut = async () => {
