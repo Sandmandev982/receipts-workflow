@@ -158,11 +158,20 @@ export class TaskService {
         .eq('id', id)
         .single();
 
+      // Prepare update object with status
+      const updateData: any = { status };
+      
+      // If status is complete, add completed_at timestamp
+      if (status === 'complete') {
+        updateData.completed_at = new Date().toISOString();
+      } else {
+        // If moving from complete to another status, remove the completed_at timestamp
+        updateData.completed_at = null;
+      }
+
       const { error } = await supabase
         .from('tasks')
-        .update({
-          status
-        })
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;

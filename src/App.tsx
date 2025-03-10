@@ -16,6 +16,7 @@ import Onboarding from "./pages/Onboarding";
 import Teams from "./pages/Teams";
 import Calendar from "./pages/Calendar";
 import Messages from "./pages/Messages";
+import Reports from "./pages/Reports";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient({
@@ -104,6 +105,11 @@ const App = () => (
                   <Route path="/messages" element={
                     <ProtectedRoute>
                       <Messages />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/reports" element={
+                    <ProtectedRoute>
+                      <Reports />
                     </ProtectedRoute>
                   } />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

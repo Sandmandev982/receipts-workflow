@@ -1,98 +1,86 @@
-
-import React from "react";
+import React from 'react';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  LayoutDashboard,
+  Home,
+  Calendar,
+  ListChecks,
   Users,
-  Calendar as CalendarIcon,
   Settings,
-  LogOut,
-  MessageSquare,
-} from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+  BarChart
+} from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface AppSidebarProps {
-  onClose?: () => void;
+  isCollapsed: boolean;
 }
 
-const AppSidebar: React.FC<AppSidebarProps> = ({ onClose }) => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const pathname = useLocation().pathname;
+const AppSidebar: React.FC<AppSidebarProps> = ({ isCollapsed }) => {
+  const { user } = useAuth();
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/auth");
-  };
-
-  const navLinks = [
-    { href: "/", label: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { href: "/teams", label: "Teams", icon: <Users className="h-5 w-5" /> },
-    { href: "/calendar", label: "Calendar", icon: <CalendarIcon className="h-5 w-5" /> },
-    { href: "/messages", label: "Messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { href: "/profile", label: "Profile", icon: <Settings className="h-5 w-5" /> },
+  const sidebarItems = [
+    {
+      title: 'Dashboard',
+      icon: <Home className="h-5 w-5" />,
+      path: '/'
+    },
+    {
+      title: 'Tasks',
+      icon: <ListChecks className="h-5 w-5" />,
+      path: '/'
+    },
+    {
+      title: 'Teams',
+      icon: <Users className="h-5 w-5" />,
+      path: '/teams'
+    },
+    {
+      title: 'Calendar',
+      icon: <Calendar className="h-5 w-5" />,
+      path: '/calendar'
+    },
+    {
+      title: 'Reports',
+      icon: <BarChart className="h-5 w-5" />,
+      path: '/reports'
+    },
+    {
+      title: 'Settings',
+      icon: <Settings className="h-5 w-5" />,
+      path: '/profile'
+    },
   ];
 
   return (
-    <Sheet open={isMobile} onOpenChange={isMobile ? onClose : undefined}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <LayoutDashboard className="h-[1.2rem] w-[1.2rem]" />
-          <span className="sr-only">Toggle Menu</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-80">
-        <SheetHeader className="text-left">
-          <SheetTitle>Menu</SheetTitle>
-          <SheetDescription>
-            Navigate through your Receipts workspace.
-          </SheetDescription>
-        </SheetHeader>
-        <div className="py-4">
-          <div className="px-4 py-2">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={user?.user_metadata.avatar_url} />
-              <AvatarFallback>{user?.user_metadata.first_name?.[0]}{user?.user_metadata.last_name?.[0]}</AvatarFallback>
-            </Avatar>
-            <div className="mt-2">
-              <p className="font-semibold">{user?.user_metadata.first_name} {user?.user_metadata.last_name}</p>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
-            </div>
-          </div>
-          <div className="grid gap-4">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                to={link.href}
-                className={`flex items-center space-x-2 rounded-md p-2 hover:bg-secondary ${pathname === link.href ? 'bg-secondary' : ''}`}
-                onClick={onClose}
-              >
-                {link.icon}
-                <span>{link.label}</span>
-              </Link>
+    <aside className={`bg-card border-r border-border w-60 flex-none transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-60'}`}>
+      <div className="p-4">
+        <div className="flex items-center justify-center mb-6">
+          <Avatar className="w-16 h-16">
+            <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.email || "User Avatar"} />
+            <AvatarFallback>{user?.email?.substring(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </div>
+        <nav>
+          <ul className="space-y-2">
+            {sidebarItems.map((item) => (
+              <li key={item.title}>
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-secondary hover:text-foreground transition-colors ${
+                      isActive ? 'bg-secondary text-foreground' : 'text-muted-foreground'
+                    }`
+                  }
+                >
+                  <div className="mr-2">{item.icon}</div>
+                  <span>{item.title}</span>
+                </NavLink>
+              </li>
             ))}
-          </div>
-        </div>
-        <div className="absolute bottom-4 w-full">
-          <Button variant="outline" className="w-full" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
+          </ul>
+        </nav>
+      </div>
+    </aside>
   );
 };
 
