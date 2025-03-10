@@ -30,7 +30,6 @@ const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({ userId }) => 
       toast({
         title: "Calendar Connected",
         description: "Your Google Calendar has been successfully connected",
-        variant: "success",
       });
     }, 1500);
   };
@@ -43,7 +42,6 @@ const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({ userId }) => 
       description: enabled 
         ? "Your tasks will now be synced to your Google Calendar" 
         : "Task syncing to Google Calendar has been disabled",
-      variant: enabled ? "success" : "default",
     });
   };
 
@@ -54,7 +52,6 @@ const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({ userId }) => 
     toast({
       title: "Calendar Disconnected",
       description: "Your Google Calendar has been disconnected",
-      variant: "default",
     });
   };
 
@@ -72,7 +69,7 @@ const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({ userId }) => 
       <CardContent className="space-y-4">
         {isConnected ? (
           <>
-            <Alert variant="success" className="bg-green-50 border-green-200">
+            <Alert className="bg-green-50 border-green-200">
               <CalendarCheck className="h-4 w-4 text-green-500" />
               <AlertDescription className="text-green-700">
                 Your Google Calendar is connected

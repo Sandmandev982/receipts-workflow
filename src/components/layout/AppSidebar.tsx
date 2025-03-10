@@ -17,14 +17,14 @@ import {
 } from 'lucide-react';
 
 const AppSidebar: React.FC = () => {
-  const { isOnboardingComplete } = useOnboarding();
+  const { hasCompletedOnboarding } = useOnboarding();
   const isMobile = useIsMobile();
 
   // Determine if sidebar should be collapsed based on mobile state
   const collapsedMode = isMobile ? "icon" : "none";
 
   return (
-    <Sidebar defaultCollapsed={collapsedMode === "icon"}>
+    <Sidebar>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
@@ -61,7 +61,7 @@ const AppSidebar: React.FC = () => {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {!isOnboardingComplete && (
+        {!hasCompletedOnboarding && (
           <SidebarGroup>
             <SidebarGroupContent>
               <NavLink to="/onboarding" className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent">

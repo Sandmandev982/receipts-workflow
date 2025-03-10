@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,10 +9,18 @@ interface TeamTasksListProps {
   teamId: string;
 }
 
+interface TeamMember {
+  id: string;
+  user_id: string;
+  name: string;
+  avatar?: string;
+  initials: string;
+}
+
 const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -57,7 +64,7 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
           description: task.description || '',
           priority: task.priority as Task['priority'],
           status: task.status as Task['status'],
-          dueDate: task.due_date ? new Date(task.due_date) : new Date(),
+          dueDate: task.due_date ? new Date(task.due_date) : null,
           dueTime: task.due_time || undefined,
           reminderSet: task.reminder_set || false,
           reminderTime: task.reminder_time || undefined,
@@ -78,33 +85,43 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
 
   const fetchTeamMembers = async () => {
     try {
-      const { data, error } = await supabase
+      // First, get all team members for this team
+      const { data: memberData, error: memberError } = await supabase
         .from('team_members')
-        .select(`
-          id,
-          user_id,
-          profiles:profiles(
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `)
+        .select('id, user_id')
         .eq('team_id', teamId);
 
-      if (error) throw error;
-
-      if (data) {
-        const members = data.map(member => ({
-          id: member.user_id,
-          name: `${member.profiles?.first_name || ''} ${member.profiles?.last_name || ''}`.trim() || 'Unknown User',
-          avatar: member.profiles?.avatar_url || null,
-          initials: `${(member.profiles?.first_name?.[0] || '').toUpperCase()}${(member.profiles?.last_name?.[0] || '').toUpperCase()}`
-        }));
+      if (memberError) throw memberError;
+      
+      if (memberData && memberData.length > 0) {
+        // Get the user profiles for each team member
+        const userIds = memberData.map(member => member.user_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url')
+          .in('id', userIds);
+          
+        if (profilesError) throw profilesError;
+        
+        // Map the profile data to our team members structure
+        const members = memberData.map(member => {
+          const profile = profilesData?.find(p => p.id === member.user_id);
+          return {
+            id: member.user_id,
+            user_id: member.user_id,
+            name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Unknown User',
+            avatar: profile?.avatar_url || undefined,
+            initials: profile ? 
+              `${(profile.first_name?.[0] || '').toUpperCase()}${(profile.last_name?.[0] || '').toUpperCase()}` : 
+              'UN'
+          };
+        });
         
         setTeamMembers(members);
       }
     } catch (error) {
       console.error('Error fetching team members:', error);
+      toast.error('Failed to load team members');
     }
   };
 

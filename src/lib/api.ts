@@ -42,36 +42,43 @@ export interface CreateTeamParams {
 
 export const getTeamMembers = async (teamId: string): Promise<TeamMember[]> => {
   try {
-    const { data, error } = await supabase
+    // First, get all team members for this team
+    const { data: memberData, error: memberError } = await supabase
       .from('team_members')
-      .select(`
-        id,
-        team_id,
-        user_id,
-        role,
-        joined_at,
-        profiles:user_id (
-          first_name,
-          last_name,
-          avatar_url
-        )
-      `)
+      .select('id, team_id, user_id, role, joined_at')
       .eq('team_id', teamId);
 
-    if (error) throw error;
-
-    return data.map(member => ({
-      id: member.id,
-      team_id: member.team_id,
-      user_id: member.user_id,
-      role: member.role as 'admin' | 'member',
-      joined_at: member.joined_at,
-      profile: {
-        first_name: member.profiles?.first_name || null,
-        last_name: member.profiles?.last_name || null,
-        avatar_url: member.profiles?.avatar_url || null
-      }
-    }));
+    if (memberError) throw memberError;
+    
+    if (!memberData || memberData.length === 0) {
+      return [];
+    }
+    
+    // Get the profiles for all the team members
+    const userIds = memberData.map(member => member.user_id);
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, avatar_url')
+      .in('id', userIds);
+      
+    if (profilesError) throw profilesError;
+    
+    // Map the team members with their profile data
+    return memberData.map(member => {
+      const profile = profilesData?.find(p => p.id === member.user_id);
+      return {
+        id: member.id,
+        team_id: member.team_id,
+        user_id: member.user_id,
+        role: member.role as 'admin' | 'member',
+        joined_at: member.joined_at,
+        profile: {
+          first_name: profile?.first_name || null,
+          last_name: profile?.last_name || null,
+          avatar_url: profile?.avatar_url || null
+        }
+      };
+    });
   } catch (error) {
     console.error('Error fetching team members:', error);
     return [];
