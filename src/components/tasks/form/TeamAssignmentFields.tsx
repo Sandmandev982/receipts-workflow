@@ -50,7 +50,7 @@ const TeamAssignmentFields: React.FC<TeamAssignmentFieldsProps> = ({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Personal Task</SelectItem>
+                    <SelectItem value="personal">Personal Task</SelectItem>
                     {teams.map((team) => (
                       <SelectItem key={team.id} value={team.id}>
                         {team.name}
@@ -78,7 +78,7 @@ const TeamAssignmentFields: React.FC<TeamAssignmentFieldsProps> = ({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
                     {teamMembers.map((member) => (
                       <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
                     ))}
