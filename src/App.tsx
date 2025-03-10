@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AuthProvider } from "@/hooks/useAuth";
 import { OnboardingProvider } from "@/hooks/useOnboarding";
-import React from "react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
@@ -19,6 +18,7 @@ import Messages from "./pages/Messages";
 import Reports from "./pages/Reports";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+// Create a new QueryClient instance outside of the component
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -65,63 +65,65 @@ class AppErrorBoundary extends React.Component<{children: React.ReactNode}, {has
   }
 }
 
-const App = () => (
-  <AppErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <OnboardingProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <Routes>
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/onboarding" element={
-                    <ProtectedRoute>
-                      <Onboarding />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/" element={
-                    <ProtectedRoute>
-                      <Index />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/profile" element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/teams" element={
-                    <ProtectedRoute>
-                      <Teams />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/calendar" element={
-                    <ProtectedRoute>
-                      <Calendar />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/messages" element={
-                    <ProtectedRoute>
-                      <Messages />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/reports" element={
-                    <ProtectedRoute>
-                      <Reports />
-                    </ProtectedRoute>
-                  } />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </TooltipProvider>
-            </OnboardingProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </AppErrorBoundary>
-);
+const App = () => {
+  return (
+    <AppErrorBoundary>
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <AuthProvider>
+              <OnboardingProvider>
+                <TooltipProvider>
+                  <Routes>
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/onboarding" element={
+                      <ProtectedRoute>
+                        <Onboarding />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/" element={
+                      <ProtectedRoute>
+                        <Index />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/profile" element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/teams" element={
+                      <ProtectedRoute>
+                        <Teams />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/calendar" element={
+                      <ProtectedRoute>
+                        <Calendar />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/messages" element={
+                      <ProtectedRoute>
+                        <Messages />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/reports" element={
+                      <ProtectedRoute>
+                        <Reports />
+                      </ProtectedRoute>
+                    } />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                  <Toaster />
+                  <Sonner />
+                </TooltipProvider>
+              </OnboardingProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </BrowserRouter>
+    </AppErrorBoundary>
+  );
+};
 
 export default App;
