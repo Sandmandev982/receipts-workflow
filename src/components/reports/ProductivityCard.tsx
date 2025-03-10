@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUpCircle, ArrowDownCircle, MinusCircle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
 import { ProductivityScore } from '@/services/ReportingService';
 
 interface ProductivityCardProps {
@@ -9,44 +10,80 @@ interface ProductivityCardProps {
 }
 
 const ProductivityCard: React.FC<ProductivityCardProps> = ({ data }) => {
-  const getIcon = () => {
-    switch (data.trend) {
+  const { score, trend, completionRate, averageCompletionTime } = data;
+  
+  const renderTrendIcon = () => {
+    switch (trend) {
       case 'up':
-        return <ArrowUpCircle className="h-8 w-8 text-green-500" />;
+        return <ArrowUpIcon className="text-green-500 h-6 w-6" />;
       case 'down':
-        return <ArrowDownCircle className="h-8 w-8 text-red-500" />;
-      default:
-        return <MinusCircle className="h-8 w-8 text-yellow-500" />;
+        return <ArrowDownIcon className="text-red-500 h-6 w-6" />;
+      case 'stable':
+        return <MinusIcon className="text-yellow-500 h-6 w-6" />;
     }
   };
-
-  const getTrendText = () => {
-    switch (data.trend) {
-      case 'up':
-        return 'Trending Up';
-      case 'down':
-        return 'Trending Down';
-      default:
-        return 'Stable';
-    }
-  };
-
+  
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Productivity Score</CardTitle>
+        <CardTitle className="flex justify-between items-center">
+          <span>Productivity Score</span>
+          <span className="flex items-center gap-2">
+            {renderTrendIcon()}
+          </span>
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-5xl font-bold">{data.score}</p>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="col-span-1 md:col-span-2 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Overall Score</span>
+              <span className="text-2xl font-bold">{score}/100</span>
+            </div>
+            <Progress value={score} className="h-2" />
             <p className="text-sm text-muted-foreground">
-              Task completion rate: {data.completionRate.toFixed(1)}%
+              {trend === 'up' ? 'Good progress! Your productivity is improving.' :
+               trend === 'down' ? 'Your productivity has decreased recently.' :
+               'Your productivity is steady.'}
             </p>
           </div>
-          <div className="flex flex-col items-center">
-            {getIcon()}
-            <span className="text-sm font-medium mt-1">{getTrendText()}</span>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Completion Rate</span>
+              <span className="text-xl font-bold">{completionRate}%</span>
+            </div>
+            <Progress value={completionRate} className="h-2" />
+            <p className="text-sm text-muted-foreground">
+              {completionRate > 75 ? 'Excellent rate!' :
+               completionRate > 50 ? 'Good progress' :
+               'Room for improvement'}
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Avg. Completion Time</span>
+              <span className="text-xl font-bold">
+                {averageCompletionTime !== null 
+                  ? `${averageCompletionTime.toFixed(1)} days`
+                  : 'N/A'}
+              </span>
+            </div>
+            {averageCompletionTime !== null && (
+              <>
+                <Progress 
+                  value={Math.max(0, 100 - (averageCompletionTime > 10 ? 100 : averageCompletionTime * 10))} 
+                  className="h-2" 
+                />
+                <p className="text-sm text-muted-foreground">
+                  {averageCompletionTime <= 1 ? 'Very fast completion!' :
+                   averageCompletionTime <= 3 ? 'Good completion time' :
+                   averageCompletionTime <= 7 ? 'Average completion time' :
+                   'Tasks taking longer than ideal'}
+                </p>
+              </>
+            )}
           </div>
         </div>
       </CardContent>

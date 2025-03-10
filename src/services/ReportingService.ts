@@ -1,23 +1,30 @@
 
-import { Task, TaskPriority, TaskStatus } from '@/components/tasks/types';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval } from 'date-fns';
-
-export interface TaskCompletionData {
-  date: string;
-  completed: number;
-  created: number;
-}
+import { Task } from '@/components/tasks/types';
+import { format, subDays, differenceInCalendarDays } from 'date-fns';
 
 export interface TaskStatusDistribution {
-  status: TaskStatus;
+  status: string;
   count: number;
   color: string;
 }
 
 export interface TaskPriorityDistribution {
-  priority: TaskPriority;
+  priority: string;
   count: number;
   color: string;
+}
+
+export interface CompletionTrendData {
+  date: string;
+  completed: number;
+  created: number;
+}
+
+export interface ProductivityScore {
+  score: number;
+  trend: 'up' | 'down' | 'stable';
+  completionRate: number;
+  averageCompletionTime: number | null; // in days
 }
 
 export interface TagUsageData {
@@ -25,148 +32,196 @@ export interface TagUsageData {
   count: number;
 }
 
-export interface ProductivityScore {
-  score: number;
-  trend: 'up' | 'down' | 'stable';
-  completionRate: number;
+export interface OverdueTask {
+  id: string;
+  title: string;
+  dueDate: Date;
+  daysOverdue: number;
+  priority: string;
 }
 
 export class ReportingService {
-  // Get completion rate over time (for line chart)
-  static getTaskCompletionTrend(tasks: Task[]): TaskCompletionData[] {
-    // Get the current month's date range
-    const start = startOfMonth(new Date());
-    const end = new Date(); // Today
+  static getTaskStatusDistribution(tasks: Task[]): TaskStatusDistribution[] {
+    const statusCounts: Record<string, number> = {
+      'pending': 0,
+      'in-progress': 0,
+      'complete': 0
+    };
     
-    // Create an array of all days in the current month until today
-    const days = eachDayOfInterval({ start, end });
-    
-    // Initialize the result array with zeros for each day
-    const result: TaskCompletionData[] = days.map(day => ({
-      date: format(day, 'MMM dd'),
-      completed: 0,
-      created: 0
-    }));
-    
-    // Count tasks created and completed for each day
     tasks.forEach(task => {
-      const createdAt = new Date(task.created_at || new Date());
-      const createdDay = format(createdAt, 'MMM dd');
+      if (statusCounts[task.status] !== undefined) {
+        statusCounts[task.status]++;
+      }
+    });
+    
+    const statusColors: Record<string, string> = {
+      'pending': '#FCD34D', // Yellow
+      'in-progress': '#60A5FA', // Blue
+      'complete': '#34D399' // Green
+    };
+    
+    return Object.entries(statusCounts).map(([status, count]) => ({
+      status,
+      count,
+      color: statusColors[status]
+    }));
+  }
+  
+  static getTaskPriorityDistribution(tasks: Task[]): TaskPriorityDistribution[] {
+    const priorityCounts: Record<string, number> = {
+      'low': 0,
+      'medium': 0,
+      'high': 0
+    };
+    
+    tasks.forEach(task => {
+      if (priorityCounts[task.priority] !== undefined) {
+        priorityCounts[task.priority]++;
+      }
+    });
+    
+    const priorityColors: Record<string, string> = {
+      'low': '#A3E635', // Light green
+      'medium': '#FBBF24', // Amber
+      'high': '#EF4444' // Red
+    };
+    
+    return Object.entries(priorityCounts).map(([priority, count]) => ({
+      priority,
+      count,
+      color: priorityColors[priority]
+    }));
+  }
+  
+  static getCompletionTrend(tasks: Task[], days: number = 14): CompletionTrendData[] {
+    const result: CompletionTrendData[] = [];
+    const endDate = new Date();
+    const startDate = subDays(endDate, days - 1);
+    
+    // Create a map for all dates in the range
+    const dateMap: Record<string, CompletionTrendData> = {};
+    
+    for (let i = 0; i < days; i++) {
+      const date = subDays(endDate, i);
+      const dateStr = format(date, 'yyyy-MM-dd');
+      dateMap[dateStr] = {
+        date: format(date, 'MMM dd'),
+        completed: 0,
+        created: 0
+      };
+    }
+    
+    // Count tasks created and completed for each date
+    tasks.forEach(task => {
+      const createdDate = task.created_at ? 
+        format(new Date(task.created_at), 'yyyy-MM-dd') : null;
       
-      // Find the day in our result array
-      const createdDayIndex = result.findIndex(item => item.date === createdDay);
-      if (createdDayIndex !== -1) {
-        result[createdDayIndex].created += 1;
+      const completedDate = task.completed_at ? 
+        format(new Date(task.completed_at), 'yyyy-MM-dd') : null;
+      
+      if (createdDate && dateMap[createdDate]) {
+        dateMap[createdDate].created++;
       }
       
-      // If task is completed, count it for the completion date
-      if (task.status === 'complete' && task.completed_at) {
-        const completedAt = new Date(task.completed_at);
-        const completedDay = format(completedAt, 'MMM dd');
-        
-        // Find the day in our result array
-        const completedDayIndex = result.findIndex(item => item.date === completedDay);
-        if (completedDayIndex !== -1) {
-          result[completedDayIndex].completed += 1;
+      if (completedDate && dateMap[completedDate]) {
+        dateMap[completedDate].completed++;
+      }
+    });
+    
+    // Sort dates in ascending order
+    return Object.values(dateMap).sort((a, b) => {
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+  }
+  
+  static getProductivityScore(tasks: Task[]): ProductivityScore {
+    const completedTasks = tasks.filter(task => task.status === 'complete');
+    const completionRate = tasks.length > 0 ? 
+      (completedTasks.length / tasks.length) * 100 : 0;
+    
+    // Calculate average completion time for tasks with both created_at and completed_at
+    let totalCompletionDays = 0;
+    let tasksWithCompletionTime = 0;
+    
+    completedTasks.forEach(task => {
+      if (task.created_at && task.completed_at) {
+        const createdDate = new Date(task.created_at);
+        const completedDate = new Date(task.completed_at);
+        const days = differenceInCalendarDays(completedDate, createdDate);
+        if (days >= 0) { // Validate to avoid negative days
+          totalCompletionDays += days;
+          tasksWithCompletionTime++;
         }
       }
     });
     
-    return result;
-  }
-  
-  // Get task distribution by status
-  static getTaskStatusDistribution(tasks: Task[]): TaskStatusDistribution[] {
-    const statusCounts = {
-      pending: 0,
-      'in-progress': 0,
-      complete: 0
+    const averageCompletionTime = tasksWithCompletionTime > 0 ? 
+      totalCompletionDays / tasksWithCompletionTime : null;
+    
+    // Calculate productivity score (0-100)
+    // High completion rate and low completion time = higher score
+    let score = completionRate;
+    
+    if (averageCompletionTime !== null) {
+      // Adjust score based on completion time (lower is better)
+      // If avg completion time > 7 days, start reducing the score
+      const timeScore = averageCompletionTime <= 1 ? 100 :
+                        averageCompletionTime <= 3 ? 80 :
+                        averageCompletionTime <= 7 ? 60 : 
+                        Math.max(0, 100 - (averageCompletionTime - 7) * 5);
+      
+      score = (score + timeScore) / 2;
+    }
+    
+    // Determine trend (this would ideally compare to a previous period)
+    // For now, we'll use a placeholder logic
+    const trend: 'up' | 'down' | 'stable' = 
+      score >= 70 ? 'up' : 
+      score >= 40 ? 'stable' : 'down';
+    
+    return {
+      score: Math.round(score),
+      trend,
+      completionRate: Math.round(completionRate),
+      averageCompletionTime
     };
-    
-    tasks.forEach(task => {
-      statusCounts[task.status] += 1;
-    });
-    
-    return [
-      { status: 'pending', count: statusCounts.pending, color: '#FFC107' },
-      { status: 'in-progress', count: statusCounts['in-progress'], color: '#007BFF' },
-      { status: 'complete', count: statusCounts.complete, color: '#28A745' }
-    ];
   }
   
-  // Get task distribution by priority
-  static getTaskPriorityDistribution(tasks: Task[]): TaskPriorityDistribution[] {
-    const priorityCounts = {
-      high: 0,
-      medium: 0,
-      low: 0
-    };
-    
-    tasks.forEach(task => {
-      priorityCounts[task.priority] += 1;
-    });
-    
-    return [
-      { priority: 'high', count: priorityCounts.high, color: '#DC3545' },
-      { priority: 'medium', count: priorityCounts.medium, color: '#FD7E14' },
-      { priority: 'low', count: priorityCounts.low, color: '#20C997' }
-    ];
-  }
-  
-  // Get most used tags
-  static getTopTags(tasks: Task[], limit: number = 10): TagUsageData[] {
+  static getTagUsage(tasks: Task[]): TagUsageData[] {
     const tagCounts: Record<string, number> = {};
     
     tasks.forEach(task => {
-      if (task.tags) {
+      if (task.tags && task.tags.length > 0) {
         task.tags.forEach(tag => {
           tagCounts[tag] = (tagCounts[tag] || 0) + 1;
         });
       }
     });
     
+    // Convert to array and sort by count (descending)
     return Object.entries(tagCounts)
       .map(([tag, count]) => ({ tag, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, limit);
+      .slice(0, 10); // Take top 10 tags
   }
   
-  // Calculate productivity score (simplified)
-  static getProductivityScore(tasks: Task[]): ProductivityScore {
-    const totalTasks = tasks.length;
-    if (totalTasks === 0) {
-      return { score: 0, trend: 'stable', completionRate: 0 };
-    }
-    
-    const completedTasks = tasks.filter(task => task.status === 'complete').length;
-    const completionRate = (completedTasks / totalTasks) * 100;
-    
-    // Check for trend (simplified - just using task completion rate)
-    // In a real app, you would compare with previous periods
-    const trend: 'up' | 'down' | 'stable' = 
-      completionRate >= 70 ? 'up' : 
-      completionRate <= 30 ? 'down' : 
-      'stable';
-    
-    // Calculate score (simplified)
-    const score = Math.round(completionRate);
-    
-    return {
-      score,
-      trend,
-      completionRate
-    };
-  }
-  
-  // Get tasks overdue
-  static getOverdueTasks(tasks: Task[]): Task[] {
+  static getOverdueTasks(tasks: Task[]): OverdueTask[] {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    return tasks.filter(task => {
-      return task.status !== 'complete' && 
+    return tasks
+      .filter(task => 
+        task.status !== 'complete' && 
         task.dueDate && 
-        new Date(task.dueDate) < today;
-    });
+        new Date(task.dueDate) < today
+      )
+      .map(task => ({
+        id: task.id,
+        title: task.title,
+        dueDate: new Date(task.dueDate as Date),
+        daysOverdue: differenceInCalendarDays(today, new Date(task.dueDate as Date)),
+        priority: task.priority
+      }))
+      .sort((a, b) => b.daysOverdue - a.daysOverdue);
   }
 }

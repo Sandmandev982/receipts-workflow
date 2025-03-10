@@ -1,42 +1,58 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Task } from '@/components/tasks/types';
+import { OverdueTask } from '@/services/ReportingService';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
 interface OverdueTasksListProps {
-  tasks: Task[];
+  tasks: OverdueTask[];
 }
 
 const OverdueTasksList: React.FC<OverdueTasksListProps> = ({ tasks }) => {
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'bg-red-500';
+      case 'medium':
+        return 'bg-amber-500';
+      case 'low':
+        return 'bg-green-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+  
   return (
-    <Card className="col-span-2">
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>Overdue Tasks</CardTitle>
       </CardHeader>
       <CardContent>
         {tasks.length === 0 ? (
-          <p className="text-muted-foreground text-center py-4">No overdue tasks!</p>
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No overdue tasks!</p>
+            <p className="text-sm">All your tasks are on track.</p>
+          </div>
         ) : (
-          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+          <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2">
             {tasks.map(task => (
-              <div 
-                key={task.id} 
-                className="flex items-center justify-between p-3 border rounded-md"
-              >
-                <div>
-                  <h3 className="font-medium">{task.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Due: {task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy') : 'No date'}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Badge variant={task.priority === 'high' ? 'destructive' : 
-                    task.priority === 'medium' ? 'default' : 'outline'}>
-                    {task.priority}
-                  </Badge>
-                  <Badge variant="outline">{task.status.replace('-', ' ')}</Badge>
+              <div key={task.id} className="p-3 border rounded-lg">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium">{task.title}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Due: {format(task.dueDate, 'PPP')}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge className={getPriorityColor(task.priority)}>
+                      {task.priority}
+                    </Badge>
+                    <Badge variant="destructive">
+                      {task.daysOverdue} {task.daysOverdue === 1 ? 'day' : 'days'} overdue
+                    </Badge>
+                  </div>
                 </div>
               </div>
             ))}
