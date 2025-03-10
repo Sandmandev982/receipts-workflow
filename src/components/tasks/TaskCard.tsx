@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,14 @@ interface TaskCardProps {
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusChange }) => {
+  const handleDelete = () => {
+    onDelete();
+  };
+
+  const handleStatusChange = (newStatus: Task['status']) => {
+    onStatusChange(newStatus);
+  };
+
   return (
     <Card className="bg-card text-card-foreground shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -32,7 +41,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
             <DropdownMenuItem onClick={onEdit}>
               <Edit className="mr-2 h-4 w-4" /> <span>Edit</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onDelete}>
+            <DropdownMenuItem onClick={handleDelete}>
               <Trash2 className="mr-2 h-4 w-4" /> <span>Delete</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -68,7 +77,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
         )}
       </CardContent>
       <CardFooter className="flex items-center justify-between">
-        <TaskStatusBadge status={task.status} onStatusChange={onStatusChange} />
+        <TaskStatusBadge status={task.status} onStatusChange={handleStatusChange} />
       </CardFooter>
     </Card>
   );

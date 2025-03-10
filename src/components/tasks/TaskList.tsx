@@ -220,9 +220,8 @@ const TaskList: React.FC<TaskListProps> = ({
               key={task.id}
               task={task}
               onEdit={() => handleEditTask(task)}
-              onDelete={onDeleteTask}
-              onStatusChange={onStatusChange}
-              onSetReminder={onSetReminder}
+              onDelete={() => onDeleteTask(task.id)}
+              onStatusChange={(newStatus) => onStatusChange(task.id, newStatus)}
             />
           ))
         ) : (

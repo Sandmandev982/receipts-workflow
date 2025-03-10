@@ -50,7 +50,7 @@ export const getTeamMembers = async (teamId: string): Promise<TeamMember[]> => {
         user_id,
         role,
         joined_at,
-        profiles:profiles(
+        profiles(
           first_name,
           last_name,
           avatar_url

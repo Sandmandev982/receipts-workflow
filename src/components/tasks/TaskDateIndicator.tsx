@@ -1,48 +1,42 @@
 
 import React from 'react';
-import { AlertCircle, Clock3 } from 'lucide-react';
-import { isPast, isToday } from 'date-fns';
-import { TaskStatus } from './types';
+import { format, isToday, isTomorrow, isBefore, isAfter } from 'date-fns';
+import { Task } from './types';
 
-interface TaskDateIndicatorProps {
-  dueDate: Date;
-  status: TaskStatus;
+export interface TaskDateIndicatorProps {
+  task: Task;
 }
 
-export const TaskDateIndicator: React.FC<TaskDateIndicatorProps> = ({ dueDate, status }) => {
-  const isDueSoon = (date: Date) => {
-    const now = new Date();
-    const diffTime = date.getTime() - now.getTime();
-    const diffDays = diffTime / (1000 * 3600 * 24);
-    return diffDays <= 2 && diffDays > 0;
-  };
-
-  if (isPast(dueDate) && status !== 'complete') {
-    return (
-      <div className="flex items-center gap-1 text-xs text-destructive">
-        <AlertCircle className="h-3 w-3" />
-        <span>Overdue</span>
-      </div>
-    );
+export const TaskDateIndicator: React.FC<TaskDateIndicatorProps> = ({ task }) => {
+  if (!task.dueDate) {
+    return <span className="text-xs text-muted-foreground">No due date</span>;
   }
 
-  if (isToday(dueDate) && status !== 'complete') {
-    return (
-      <div className="flex items-center gap-1 text-xs text-receipts-yellow">
-        <Clock3 className="h-3 w-3" />
-        <span>Due today</span>
-      </div>
-    );
+  const dueDate = new Date(task.dueDate);
+  const now = new Date();
+
+  let dateString = format(dueDate, 'MMM d, yyyy');
+  let timeString = task.dueTime ? task.dueTime : '';
+  let className = 'text-xs';
+
+  if (task.status === 'complete') {
+    className += ' text-muted-foreground line-through';
+  } else if (isBefore(dueDate, now) && task.status !== 'complete') {
+    className += ' text-destructive font-medium';
+    dateString = `Overdue: ${dateString}`;
+  } else if (isToday(dueDate)) {
+    className += ' text-amber-500 font-medium';
+    dateString = `Today: ${dateString}`;
+  } else if (isTomorrow(dueDate)) {
+    className += ' text-amber-400';
+    dateString = `Tomorrow: ${dateString}`;
+  } else if (isAfter(dueDate, now) && isBefore(dueDate, new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000))) {
+    className += ' text-amber-300';
   }
 
-  if (isDueSoon(dueDate) && status !== 'complete') {
-    return (
-      <div className="flex items-center gap-1 text-xs text-amber-500">
-        <Clock3 className="h-3 w-3" />
-        <span>Due soon</span>
-      </div>
-    );
-  }
-
-  return null;
+  return (
+    <span className={className}>
+      {dateString} {timeString && `at ${timeString}`}
+    </span>
+  );
 };

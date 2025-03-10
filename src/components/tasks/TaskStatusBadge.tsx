@@ -5,9 +5,10 @@ import { TaskStatus } from './types';
 
 interface TaskStatusBadgeProps {
   status: TaskStatus;
+  onStatusChange?: (newStatus: TaskStatus) => void;
 }
 
-export const TaskStatusBadge: React.FC<TaskStatusBadgeProps> = ({ status }) => {
+export const TaskStatusBadge: React.FC<TaskStatusBadgeProps> = ({ status, onStatusChange }) => {
   switch (status) {
     case 'pending':
       return <Badge variant="outline" className="bg-receipts-yellow/10 border-receipts-yellow text-receipts-yellow font-normal">Pending</Badge>;

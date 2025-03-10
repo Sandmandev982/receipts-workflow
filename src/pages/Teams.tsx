@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,11 +16,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import TeamTasksList from '@/components/tasks/TeamTasksList';
 import { createTeam, getTeams, getTeamMembers, TeamMember } from '@/lib/api';
-import { Label } from '@/components/ui/label';
 
 const teamFormSchema = z.object({
   name: z.string().min(2, {
@@ -73,7 +74,8 @@ const Teams = () => {
 
     try {
       await createTeam({
-        ...values,
+        name: values.name,
+        description: values.description,
         created_by: user.id,
       });
 
@@ -120,7 +122,7 @@ const Teams = () => {
       <div className="container py-10">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Teams</h1>
-          <Dialog>
+          <Dialog open={isTeamDialogOpen} onOpenChange={setIsTeamDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
@@ -208,7 +210,7 @@ const Teams = () => {
 
           <div className="md:col-span-3">
             {selectedTeam ? (
-              <Tabs defaultValue="tasks" className="w-full">
+              <Tabs defaultValue="tasks">
                 <TabsList>
                   <TabsTrigger value="tasks">Tasks</TabsTrigger>
                   <TabsTrigger value="members">Members</TabsTrigger>
