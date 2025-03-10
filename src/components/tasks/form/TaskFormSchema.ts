@@ -10,6 +10,8 @@ export const taskFormSchema = z.object({
   dueTime: z.string().optional(),
   reminderEnabled: z.boolean().default(false),
   reminderTime: z.string().optional(),
+  emailNotification: z.boolean().default(false),
+  notificationEmail: z.string().email().optional().or(z.literal('')),
   progress: z.number().min(0).max(100).default(0),
   tags: z.string().optional(),
   assignedTo: z.string().optional(),

@@ -9,6 +9,8 @@ export interface Task {
   dueTime?: string;
   reminderSet?: boolean;
   reminderTime?: string;
+  emailNotification?: boolean;
+  notificationEmail?: string;
   progress?: number;
   assignedTo?: {
     id: string;

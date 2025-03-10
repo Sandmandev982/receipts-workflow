@@ -6,6 +6,7 @@ import { Task } from './types';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { taskFormSchema, TaskFormValues } from './form/TaskFormSchema';
+import { useAuth } from '@/hooks/useAuth';
 
 // Import all the form component pieces
 import BasicInfoFields from './form/BasicInfoFields';
@@ -34,6 +35,8 @@ const TaskForm: React.FC<TaskFormProps> = ({
   teamMembers = [], 
   teams = [] 
 }) => {
+  const { user } = useAuth();
+  
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: task ? {
@@ -45,6 +48,8 @@ const TaskForm: React.FC<TaskFormProps> = ({
       dueTime: task.dueTime || '',
       reminderEnabled: task.reminderSet || false,
       reminderTime: task.reminderTime || '1 hour before',
+      emailNotification: task.emailNotification || false,
+      notificationEmail: task.notificationEmail || user?.email || '',
       progress: task.progress || 0,
       tags: task.tags ? task.tags.join(', ') : '',
       assignedTo: task.assignedTo?.id || '',
@@ -58,6 +63,8 @@ const TaskForm: React.FC<TaskFormProps> = ({
       dueTime: '',
       reminderEnabled: false,
       reminderTime: '1 hour before',
+      emailNotification: false,
+      notificationEmail: user?.email || '',
       progress: 0,
       tags: '',
       assignedTo: '',

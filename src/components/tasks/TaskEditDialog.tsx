@@ -90,6 +90,8 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
       dueTime: data.dueTime,
       reminderSet: data.reminderEnabled,
       reminderTime: data.reminderEnabled ? data.reminderTime : undefined,
+      emailNotification: data.emailNotification,
+      notificationEmail: data.emailNotification ? data.notificationEmail : undefined,
       progress: data.progress,
       tags: tags.length > 0 ? tags : undefined,
       assignedTo: assignedTeamMember ? {

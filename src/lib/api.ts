@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Task, TaskPriority, TaskStatus } from '@/components/tasks/types';
 import { format } from 'date-fns';
@@ -143,6 +142,32 @@ export const createTeam = async (params: CreateTeamParams): Promise<Team> => {
     return data;
   } catch (error) {
     console.error('Error creating team:', error);
+    throw error;
+  }
+};
+
+export const scheduleTaskReminder = async (task: Task): Promise<void> => {
+  try {
+    if (!task.reminderSet || !task.emailNotification || !task.notificationEmail) {
+      return;
+    }
+
+    // Call the Supabase edge function to schedule the reminder
+    const { error } = await supabase.functions.invoke('send-reminder', {
+      body: JSON.stringify({
+        taskId: task.id,
+        email: task.notificationEmail,
+        taskTitle: task.title,
+        dueDate: task.dueDate ? format(task.dueDate, 'PP') : null,
+        dueTime: task.dueTime,
+      }),
+    });
+
+    if (error) throw error;
+    
+    console.log('Reminder scheduled successfully');
+  } catch (error) {
+    console.error('Error scheduling reminder:', error);
     throw error;
   }
 };
