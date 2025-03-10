@@ -1,3 +1,4 @@
+
 import { Task } from '@/components/tasks/types';
 import { format, subDays } from 'date-fns';
 
@@ -72,9 +73,9 @@ export class ReportingService {
   static getOverdueTasks(tasks: Task[]): OverdueTask[] {
     const today = new Date();
     return tasks
-      .filter(task => new Date(task.dueDate) < today && task.status !== 'completed')
+      .filter(task => new Date(task.due_date) < today && task.status !== 'complete')
       .map(task => {
-        const dueDate = new Date(task.dueDate);
+        const dueDate = new Date(task.due_date);
         const timeDiff = today.getTime() - dueDate.getTime();
         const daysOverdue = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
@@ -89,7 +90,7 @@ export class ReportingService {
   }
 
   static getProductivityScore(tasks: Task[]): ProductivityScoreData {
-    const completedTasks = tasks.filter(task => task.status === 'completed').length;
+    const completedTasks = tasks.filter(task => task.status === 'complete').length;
     const totalTasks = tasks.length;
     const score = totalTasks === 0 ? 0 : (completedTasks / totalTasks) * 100;
 
@@ -109,8 +110,15 @@ export class ReportingService {
       const date = subDays(today, i);
       const formattedDate = format(date, 'yyyy-MM-dd');
 
-      const createdCount = tasks.filter(task => format(new Date(task.createdAt), 'yyyy-MM-dd') === formattedDate).length;
-      const completedCount = tasks.filter(task => format(new Date(task.completedAt || task.createdAt), 'yyyy-MM-dd') === formattedDate && task.status === 'completed').length;
+      const createdCount = tasks.filter(task => 
+        format(new Date(task.created_at), 'yyyy-MM-dd') === formattedDate
+      ).length;
+      
+      const completedCount = tasks.filter(task => 
+        task.completed_at && 
+        format(new Date(task.completed_at), 'yyyy-MM-dd') === formattedDate && 
+        task.status === 'complete'
+      ).length;
 
       completionData.push({
         date: new Date(formattedDate),
