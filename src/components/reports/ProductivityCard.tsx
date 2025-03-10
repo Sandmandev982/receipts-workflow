@@ -3,10 +3,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
-import { ProductivityScore } from '@/services/ReportingService';
+import { ProductivityScoreData } from '@/services/ReportingService';
 
 interface ProductivityCardProps {
-  data: ProductivityScore;
+  data: ProductivityScoreData;
 }
 
 const ProductivityCard: React.FC<ProductivityCardProps> = ({ data }) => {
@@ -19,6 +19,7 @@ const ProductivityCard: React.FC<ProductivityCardProps> = ({ data }) => {
       case 'down':
         return <ArrowDownIcon className="text-red-500 h-6 w-6" />;
       case 'stable':
+      default:
         return <MinusIcon className="text-yellow-500 h-6 w-6" />;
     }
   };

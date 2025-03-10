@@ -2,11 +2,11 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { TaskStatusDistribution, TaskPriorityDistribution } from '@/services/ReportingService';
+import { TaskStatusData, TaskPriorityData } from '@/services/ReportingService';
 
 interface TaskDistributionChartProps {
   title: string;
-  data: TaskStatusDistribution[] | TaskPriorityDistribution[];
+  data: TaskStatusData[] | TaskPriorityData[];
   dataKey: 'status' | 'priority';
 }
 
@@ -34,7 +34,10 @@ const TaskDistributionChart: React.FC<TaskDistributionChartProps> = ({ title, da
                 }
               >
                 {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.color || `#${Math.floor(Math.random() * 16777215).toString(16)}`} 
+                  />
                 ))}
               </Pie>
               <Tooltip formatter={(value) => [`${value} tasks`, 'Count']} />

@@ -5,11 +5,13 @@ import { format, subDays } from 'date-fns';
 export interface TaskStatusData {
   status: string;
   count: number;
+  color?: string;
 }
 
 export interface TaskPriorityData {
   priority: string;
   count: number;
+  color?: string;
 }
 
 export interface TagUsageData {
@@ -29,6 +31,9 @@ export interface ProductivityScoreData {
   score: number;
   completedTasks: number;
   totalTasks: number;
+  trend?: 'up' | 'down' | 'stable';
+  completionRate?: number;
+  averageCompletionTime?: number | null;
 }
 
 export interface TaskCompletionData {
@@ -44,7 +49,17 @@ export class ReportingService {
       statusCounts[task.status] = (statusCounts[task.status] || 0) + 1;
     });
 
-    return Object.entries(statusCounts).map(([status, count]) => ({ status, count }));
+    const colors: { [key: string]: string } = {
+      'pending': '#FF9800',
+      'in-progress': '#2196F3',
+      'complete': '#4CAF50'
+    };
+
+    return Object.entries(statusCounts).map(([status, count]) => ({ 
+      status, 
+      count,
+      color: colors[status] || '#CCCCCC'
+    }));
   }
 
   static getTaskPriorityDistribution(tasks: Task[]): TaskPriorityData[] {
@@ -53,7 +68,17 @@ export class ReportingService {
       priorityCounts[task.priority] = (priorityCounts[task.priority] || 0) + 1;
     });
 
-    return Object.entries(priorityCounts).map(([priority, count]) => ({ priority, count }));
+    const colors: { [key: string]: string } = {
+      'high': '#F44336',
+      'medium': '#FF9800',
+      'low': '#4CAF50'
+    };
+
+    return Object.entries(priorityCounts).map(([priority, count]) => ({ 
+      priority, 
+      count,
+      color: colors[priority] || '#CCCCCC'
+    }));
   }
 
   static getTagUsage(tasks: Task[]): TagUsageData[] {
@@ -73,9 +98,9 @@ export class ReportingService {
   static getOverdueTasks(tasks: Task[]): OverdueTask[] {
     const today = new Date();
     return tasks
-      .filter(task => new Date(task.due_date) < today && task.status !== 'complete')
+      .filter(task => task.dueDate && new Date(task.dueDate) < today && task.status !== 'complete')
       .map(task => {
-        const dueDate = new Date(task.due_date);
+        const dueDate = new Date(task.dueDate as Date);
         const timeDiff = today.getTime() - dueDate.getTime();
         const daysOverdue = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
@@ -93,11 +118,37 @@ export class ReportingService {
     const completedTasks = tasks.filter(task => task.status === 'complete').length;
     const totalTasks = tasks.length;
     const score = totalTasks === 0 ? 0 : (completedTasks / totalTasks) * 100;
+    
+    // Calculate completion rate
+    const completionRate = totalTasks === 0 ? 0 : (completedTasks / totalTasks) * 100;
+    
+    // Calculate average completion time for completed tasks
+    const completedTasksWithDates = tasks.filter(
+      task => task.status === 'complete' && task.completed_at && task.created_at
+    );
+    
+    let averageCompletionTime = null;
+    if (completedTasksWithDates.length > 0) {
+      const totalCompletionTime = completedTasksWithDates.reduce((total, task) => {
+        const createdDate = new Date(task.created_at as string);
+        const completedDate = new Date(task.completed_at as string);
+        const timeToComplete = (completedDate.getTime() - createdDate.getTime()) / (1000 * 3600 * 24); // in days
+        return total + timeToComplete;
+      }, 0);
+      
+      averageCompletionTime = totalCompletionTime / completedTasksWithDates.length;
+    }
+    
+    // Determine trend (this would ideally use historical data)
+    const trend: 'up' | 'down' | 'stable' = 'stable';
 
     return {
       score: parseFloat(score.toFixed(2)),
       completedTasks,
       totalTasks,
+      trend,
+      completionRate: parseFloat(completionRate.toFixed(2)),
+      averageCompletionTime
     };
   }
 
@@ -111,7 +162,7 @@ export class ReportingService {
       const formattedDate = format(date, 'yyyy-MM-dd');
 
       const createdCount = tasks.filter(task => 
-        format(new Date(task.created_at), 'yyyy-MM-dd') === formattedDate
+        task.created_at && format(new Date(task.created_at), 'yyyy-MM-dd') === formattedDate
       ).length;
       
       const completedCount = tasks.filter(task => 
