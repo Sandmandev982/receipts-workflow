@@ -3,9 +3,9 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  priority: 'high' | 'medium' | 'low';
-  status: 'pending' | 'in-progress' | 'complete';
-  dueDate: Date;
+  priority: TaskPriority;
+  status: TaskStatus;
+  dueDate: Date | null;
   dueTime?: string;
   reminderSet?: boolean;
   reminderTime?: string;

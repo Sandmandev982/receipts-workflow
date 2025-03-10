@@ -21,7 +21,7 @@ export const TaskDateIndicator: React.FC<TaskDateIndicatorProps> = ({ task }) =>
 
   if (task.status === 'complete') {
     className += ' text-muted-foreground line-through';
-  } else if (isBefore(dueDate, now) && task.status !== 'complete') {
+  } else if (isBefore(dueDate, now)) {
     className += ' text-destructive font-medium';
     dateString = `Overdue: ${dateString}`;
   } else if (isToday(dueDate)) {
