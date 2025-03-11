@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { Session, User, AuthResponse } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -8,7 +8,7 @@ interface AuthContextProps {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<AuthResponse>;
   signOut: () => Promise<void>;
 }
 
@@ -52,28 +52,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<AuthResponse> => {
     try {
       setLoading(true);
       console.log('Attempting to sign in with:', email);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const response = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
-      if (error) {
-        console.error('Login error:', error);
-        toast.error(error.message || 'Failed to sign in');
-        throw error;
+      if (response.error) {
+        console.error('Login error:', response.error);
+        toast.error(response.error.message || 'Failed to sign in');
+      } else {
+        console.log('Login successful, session:', response.data.session);
+        toast.success('Successfully logged in!');
       }
       
-      console.log('Login successful, session:', data.session);
-      toast.success('Successfully logged in!');
-      return data;
+      return response;
     } catch (error: any) {
       console.error('Login error:', error);
-      throw error;
+      // Return a properly structured AuthResponse object in case of errors
+      return {
+        data: { user: null, session: null },
+        error
+      } as AuthResponse;
     } finally {
       setLoading(false);
     }

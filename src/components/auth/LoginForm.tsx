@@ -36,10 +36,15 @@ const LoginForm = () => {
       setLoginError(null);
       console.log('Attempting to sign in with:', data.email);
       
-      await signIn(data.email, data.password);
+      const response = await signIn(data.email, data.password);
       
-      // The Auth component will redirect after successful login via the useEffect hook
-      console.log('Login form completed successfully');
+      if (response.error) {
+        console.error('Login form error:', response.error);
+        setLoginError(response.error.message || 'An error occurred during login');
+      } else {
+        // The Auth component will redirect after successful login via the useEffect hook
+        console.log('Login form completed successfully');
+      }
       
     } catch (error: any) {
       console.error('Login form error:', error);
