@@ -153,7 +153,7 @@ const TaskFilter: React.FC<TaskFilterProps> = ({
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all-statuses">All Statuses</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="in-progress">In Progress</SelectItem>
               <SelectItem value="complete">Complete</SelectItem>
@@ -168,7 +168,7 @@ const TaskFilter: React.FC<TaskFilterProps> = ({
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Priorities</SelectItem>
+              <SelectItem value="all-priorities">All Priorities</SelectItem>
               <SelectItem value="high">High</SelectItem>
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="low">Low</SelectItem>
