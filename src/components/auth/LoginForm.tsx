@@ -21,6 +21,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const LoginForm = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -33,20 +34,22 @@ const LoginForm = () => {
   const handleSignIn = async (data: LoginFormValues) => {
     try {
       setLoading(true);
+      setLoginError(null);
       console.log('Attempting to sign in with:', data.email);
       
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
       
       if (error) {
         console.error('Login error:', error);
+        setLoginError(error.message);
         throw error;
       }
       
-      console.log('Login successful');
-      // Note: No need to navigate here as the Auth component will handle it
+      console.log('Login successful, session:', authData.session);
+      // Note: No need to navigate here as the Auth component will handle it via the useAuth hook
       
     } catch (error: any) {
       console.error('Login error:', error);
@@ -67,6 +70,11 @@ const LoginForm = () => {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSignIn)}>
           <CardContent className="space-y-4">
+            {loginError && (
+              <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                {loginError}
+              </div>
+            )}
             <FormField
               control={form.control}
               name="email"

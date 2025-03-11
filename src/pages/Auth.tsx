@@ -9,12 +9,12 @@ import { toast } from 'sonner';
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('login');
 
   useEffect(() => {
     // Add debug logging
-    console.log('Auth Component - Current session:', session);
+    console.log('Auth Component - Current session:', session, 'Loading:', loading);
     
     // Redirect to dashboard if user is already logged in
     if (session) {
@@ -22,12 +22,21 @@ const Auth = () => {
       toast.success('Successfully logged in!');
       navigate('/');
     }
-  }, [session, navigate]);
+  }, [session, navigate, loading]);
 
   const handleRegistrationSuccess = () => {
     setActiveTab('login');
     toast.success('Registration successful! Please log in.');
   };
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">

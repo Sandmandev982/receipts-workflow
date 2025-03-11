@@ -1,7 +1,8 @@
 
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,6 +10,16 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { session, loading } = useAuth();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    console.log('ProtectedRoute - Auth state:', { session, loading });
+    
+    if (!loading && !session) {
+      console.log('ProtectedRoute - No session, redirecting to auth');
+      toast.error('Please log in to access this page');
+    }
+  }, [session, loading, navigate]);
   
   // Show loading or spinner while checking authentication
   if (loading) {
