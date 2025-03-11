@@ -19,7 +19,7 @@ const Auth = () => {
     // Redirect to dashboard if user is already logged in
     if (session) {
       console.log('User is authenticated, redirecting to dashboard');
-      toast.success('Successfully logged in!');
+      toast.success('Welcome back!');
       navigate('/');
     }
   }, [session, navigate, loading]);

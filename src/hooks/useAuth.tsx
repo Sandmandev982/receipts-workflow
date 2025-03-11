@@ -2,11 +2,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AuthContextProps {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -50,18 +52,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  const signIn = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      console.log('Attempting to sign in with:', email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error('Login error:', error);
+        toast.error(error.message || 'Failed to sign in');
+        throw error;
+      }
+      
+      console.log('Login successful, session:', data.session);
+      toast.success('Successfully logged in!');
+      return data;
+    } catch (error: any) {
+      console.error('Login error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signOut = async () => {
     try {
+      setLoading(true);
       console.log('Signing out...');
-      await supabase.auth.signOut();
+      
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Logout error:', error);
+        toast.error(error.message || 'Failed to sign out');
+        throw error;
+      }
+      
       console.log('Sign out successful');
-    } catch (error) {
+      toast.success('Successfully logged out');
+    } catch (error: any) {
       console.error('Error signing out:', error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

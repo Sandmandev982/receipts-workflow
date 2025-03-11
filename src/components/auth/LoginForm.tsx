@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -20,7 +20,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginForm = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const { signIn, loading } = useAuth();
   const [loginError, setLoginError] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
@@ -33,29 +33,17 @@ const LoginForm = () => {
 
   const handleSignIn = async (data: LoginFormValues) => {
     try {
-      setLoading(true);
       setLoginError(null);
       console.log('Attempting to sign in with:', data.email);
       
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
+      await signIn(data.email, data.password);
       
-      if (error) {
-        console.error('Login error:', error);
-        setLoginError(error.message);
-        throw error;
-      }
-      
-      console.log('Login successful, session:', authData.session);
-      // Note: No need to navigate here as the Auth component will handle it via the useAuth hook
+      // The Auth component will redirect after successful login via the useEffect hook
+      console.log('Login form completed successfully');
       
     } catch (error: any) {
-      console.error('Login error:', error);
-      toast.error(error.message || 'An error occurred during login');
-    } finally {
-      setLoading(false);
+      console.error('Login form error:', error);
+      setLoginError(error.message || 'An error occurred during login');
     }
   };
 
