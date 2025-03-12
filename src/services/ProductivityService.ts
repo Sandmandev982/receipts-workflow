@@ -2,10 +2,40 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Subtask, Milestone, DailyOutcome, WeeklyOutcome, TimerSession, Task } from '@/components/tasks/types';
 import { format } from 'date-fns';
+import { Json } from '@/integrations/supabase/types';
 
 // Helper function to format dates for Supabase
 const formatDateForSupabase = (date: Date): string => {
   return format(date, 'yyyy-MM-dd');
+};
+
+// Helper function to convert Task objects to JSON-compatible format
+const tasksToJson = (tasks: Task[]): Json => {
+  return tasks.map(task => ({
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    priority: task.priority,
+    status: task.status,
+    dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+    progress: task.progress || 0
+  })) as Json;
+};
+
+// Helper function to convert JSON data back to Task objects
+const jsonToTasks = (data: Json | null): Task[] => {
+  if (!data) return [];
+  const jsonArray = Array.isArray(data) ? data : [];
+  
+  return jsonArray.map(item => ({
+    id: String(item.id || ''),
+    title: String(item.title || ''),
+    description: String(item.description || ''),
+    priority: (item.priority as Task['priority']) || 'medium',
+    status: (item.status as Task['status']) || 'pending',
+    dueDate: item.dueDate ? new Date(String(item.dueDate)) : null,
+    progress: Number(item.progress || 0)
+  }));
 };
 
 export class ProductivityService {
@@ -267,7 +297,7 @@ export class ProductivityService {
       return {
         id: data.id,
         date: new Date(data.date),
-        prev_day_tasks: data.prev_day_tasks || [],
+        prev_day_tasks: jsonToTasks(data.prev_day_tasks),
         today_focus: data.today_focus || [],
         accomplishments: data.accomplishments || [],
         performance_rating: data.performance_rating || 0,
@@ -284,6 +314,9 @@ export class ProductivityService {
   static async saveDailyOutcome(userId: string, outcome: Omit<DailyOutcome, 'id' | 'created_at' | 'updated_at'>): Promise<DailyOutcome | null> {
     try {
       const formattedDate = formatDateForSupabase(outcome.date);
+      
+      // Convert Task[] to JSON compatible format
+      const prevDayTasksJson = tasksToJson(outcome.prev_day_tasks);
       
       // Check if a record already exists for this date
       const { data: existingData, error: checkError } = await supabase
@@ -302,7 +335,7 @@ export class ProductivityService {
         const { data, error } = await supabase
           .from('daily_outcomes')
           .update({
-            prev_day_tasks: outcome.prev_day_tasks,
+            prev_day_tasks: prevDayTasksJson,
             today_focus: outcome.today_focus,
             accomplishments: outcome.accomplishments,
             performance_rating: outcome.performance_rating,
@@ -321,7 +354,7 @@ export class ProductivityService {
           .insert({
             user_id: userId,
             date: formattedDate,
-            prev_day_tasks: outcome.prev_day_tasks,
+            prev_day_tasks: prevDayTasksJson,
             today_focus: outcome.today_focus,
             accomplishments: outcome.accomplishments,
             performance_rating: outcome.performance_rating,
@@ -337,7 +370,7 @@ export class ProductivityService {
       return {
         id: result.id,
         date: new Date(result.date),
-        prev_day_tasks: result.prev_day_tasks || [],
+        prev_day_tasks: jsonToTasks(result.prev_day_tasks),
         today_focus: result.today_focus || [],
         accomplishments: result.accomplishments || [],
         performance_rating: result.performance_rating || 0,
