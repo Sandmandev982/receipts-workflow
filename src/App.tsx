@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -16,6 +17,7 @@ import Teams from "./pages/Teams";
 import Calendar from "./pages/Calendar";
 import Messages from "./pages/Messages";
 import Reports from "./pages/Reports";
+import Productivity from "./pages/Productivity";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Create a new QueryClient instance outside of the component
@@ -109,6 +111,11 @@ const App = () => {
                     <Route path="/reports" element={
                       <ProtectedRoute>
                         <Reports />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/productivity" element={
+                      <ProtectedRoute>
+                        <Productivity />
                       </ProtectedRoute>
                     } />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

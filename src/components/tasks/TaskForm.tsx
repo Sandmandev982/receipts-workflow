@@ -16,6 +16,8 @@ import TeamAssignmentFields from './form/TeamAssignmentFields';
 import TagsFields from './form/TagsFields';
 import ProgressField from './form/ProgressField';
 import ReminderFields from './form/ReminderFields';
+import SmartTaskFields from './form/SmartTaskFields';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface TeamOption {
   id: string;
@@ -54,6 +56,16 @@ const TaskForm: React.FC<TaskFormProps> = ({
       tags: task.tags ? task.tags.join(', ') : '',
       assignedTo: task.assignedTo?.id || '',
       teamId: task.teamId || '',
+      // SMART task fields
+      specific: task.specific || '',
+      measurable: task.measurable || '',
+      achievable: task.achievable !== undefined ? task.achievable : true,
+      relevant: task.relevant || '',
+      time_bound: task.time_bound !== undefined ? task.time_bound : true,
+      // Additional fields
+      start_date: task.start_date || undefined,
+      has_subtasks: task.has_subtasks || false,
+      has_reverse_plan: task.has_reverse_plan || false
     } : {
       title: '',
       description: '',
@@ -69,36 +81,60 @@ const TaskForm: React.FC<TaskFormProps> = ({
       tags: '',
       assignedTo: '',
       teamId: '',
+      // SMART task fields
+      specific: '',
+      measurable: '',
+      achievable: true,
+      relevant: '',
+      time_bound: true,
+      // Additional fields
+      start_date: undefined,
+      has_subtasks: false,
+      has_reverse_plan: false
     },
   });
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        {/* Basic Info */}
-        <BasicInfoFields form={form} />
-        
-        {/* Status and Priority */}
-        <StatusPriorityFields form={form} />
-        
-        {/* Date and Time */}
-        <DateTimeFields form={form} />
-        
-        {/* Team and Assignment */}
-        <TeamAssignmentFields 
-          form={form} 
-          teams={teams} 
-          teamMembers={teamMembers} 
-        />
-        
-        {/* Tags */}
-        <TagsFields form={form} />
-        
-        {/* Progress */}
-        <ProgressField form={form} />
-        
-        {/* Reminder Settings */}
-        <ReminderFields form={form} />
+        <Tabs defaultValue="basic" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="basic">Basic Info</TabsTrigger>
+            <TabsTrigger value="smart">SMART Task</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="basic" className="space-y-4">
+            {/* Basic Info */}
+            <BasicInfoFields form={form} />
+            
+            {/* Status and Priority */}
+            <StatusPriorityFields form={form} />
+            
+            {/* Date and Time */}
+            <DateTimeFields form={form} />
+            
+            {/* Team and Assignment */}
+            <TeamAssignmentFields 
+              form={form} 
+              teams={teams} 
+              teamMembers={teamMembers} 
+            />
+            
+            {/* Tags */}
+            <TagsFields form={form} />
+            
+            {/* Progress */}
+            <ProgressField form={form} />
+            
+            {/* Reminder Settings */}
+            <ReminderFields form={form} />
+          </TabsContent>
+          
+          <TabsContent value="smart" className="space-y-4">
+            {/* SMART Task Fields */}
+            <SmartTaskFields form={form} />
+          </TabsContent>
+        </Tabs>
         
         {/* Submit Button */}
         <div className="flex justify-end">

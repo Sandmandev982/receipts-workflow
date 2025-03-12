@@ -16,6 +16,16 @@ export const taskFormSchema = z.object({
   tags: z.string().optional(),
   assignedTo: z.string().optional(),
   teamId: z.string().optional(),
+  // SMART task fields
+  specific: z.string().optional(),
+  measurable: z.string().optional(),
+  achievable: z.boolean().default(true),
+  relevant: z.string().optional(),
+  time_bound: z.boolean().default(true),
+  // Additional fields
+  start_date: z.date().optional(),
+  has_subtasks: z.boolean().default(false),
+  has_reverse_plan: z.boolean().default(false)
 });
 
 export type TaskFormValues = z.infer<typeof taskFormSchema>;

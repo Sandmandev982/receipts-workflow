@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      daily_outcomes: {
+        Row: {
+          accomplishments: string[] | null
+          created_at: string | null
+          date: string
+          id: string
+          lessons_learned: string | null
+          performance_rating: number | null
+          prev_day_tasks: Json | null
+          today_focus: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accomplishments?: string[] | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          lessons_learned?: string | null
+          performance_rating?: number | null
+          prev_day_tasks?: Json | null
+          today_focus?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accomplishments?: string[] | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          lessons_learned?: string | null
+          performance_rating?: number | null
+          prev_day_tasks?: Json | null
+          today_focus?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -107,54 +146,163 @@ export type Database = {
         }
         Relationships: []
       }
+      reverse_planning: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          due_date: string
+          id: string
+          milestone_title: string
+          order_index: number | null
+          status: string
+          task_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          due_date: string
+          id?: string
+          milestone_title: string
+          order_index?: number | null
+          status?: string
+          task_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          due_date?: string
+          id?: string
+          milestone_title?: string
+          order_index?: number | null
+          status?: string
+          task_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reverse_planning_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_breakdowns: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          order_index: number | null
+          parent_task_id: string
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          order_index?: number | null
+          parent_task_id: string
+          status?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          order_index?: number | null
+          parent_task_id?: string
+          status?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_breakdowns_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
+          achievable: boolean | null
           completed_at: string | null
           created_at: string
           description: string | null
           due_date: string | null
           due_time: string | null
+          has_reverse_plan: boolean | null
+          has_subtasks: boolean | null
           id: string
+          measurable: string | null
           priority: string
           progress: number | null
+          relevant: string | null
           reminder_set: boolean | null
           reminder_time: string | null
+          specific: string | null
+          start_date: string | null
           status: string
           tags: string[] | null
+          time_bound: boolean | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          achievable?: boolean | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           due_time?: string | null
+          has_reverse_plan?: boolean | null
+          has_subtasks?: boolean | null
           id?: string
+          measurable?: string | null
           priority?: string
           progress?: number | null
+          relevant?: string | null
           reminder_set?: boolean | null
           reminder_time?: string | null
+          specific?: string | null
+          start_date?: string | null
           status?: string
           tags?: string[] | null
+          time_bound?: boolean | null
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          achievable?: boolean | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           due_time?: string | null
+          has_reverse_plan?: boolean | null
+          has_subtasks?: boolean | null
           id?: string
+          measurable?: string | null
           priority?: string
           progress?: number | null
+          relevant?: string | null
           reminder_set?: boolean | null
           reminder_time?: string | null
+          specific?: string | null
+          start_date?: string | null
           status?: string
           tags?: string[] | null
+          time_bound?: boolean | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -250,6 +398,98 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      timer_sessions: {
+        Row: {
+          break_duration: number | null
+          completed: boolean | null
+          created_at: string | null
+          end_time: string | null
+          id: string
+          notes: string | null
+          start_time: string
+          task_id: string | null
+          user_id: string
+          work_duration: number | null
+        }
+        Insert: {
+          break_duration?: number | null
+          completed?: boolean | null
+          created_at?: string | null
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          start_time: string
+          task_id?: string | null
+          user_id: string
+          work_duration?: number | null
+        }
+        Update: {
+          break_duration?: number | null
+          completed?: boolean | null
+          created_at?: string | null
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          start_time?: string
+          task_id?: string | null
+          user_id?: string
+          work_duration?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timer_sessions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_outcomes: {
+        Row: {
+          created_at: string | null
+          education_goals: string[] | null
+          education_steps: string[] | null
+          health_goals: string[] | null
+          health_steps: string[] | null
+          id: string
+          reflection: string | null
+          updated_at: string | null
+          user_id: string
+          week_start_date: string
+          work_goals: string[] | null
+          work_steps: string[] | null
+        }
+        Insert: {
+          created_at?: string | null
+          education_goals?: string[] | null
+          education_steps?: string[] | null
+          health_goals?: string[] | null
+          health_steps?: string[] | null
+          id?: string
+          reflection?: string | null
+          updated_at?: string | null
+          user_id: string
+          week_start_date: string
+          work_goals?: string[] | null
+          work_steps?: string[] | null
+        }
+        Update: {
+          created_at?: string | null
+          education_goals?: string[] | null
+          education_steps?: string[] | null
+          health_goals?: string[] | null
+          health_steps?: string[] | null
+          id?: string
+          reflection?: string | null
+          updated_at?: string | null
+          user_id?: string
+          week_start_date?: string
+          work_goals?: string[] | null
+          work_steps?: string[] | null
         }
         Relationships: []
       }

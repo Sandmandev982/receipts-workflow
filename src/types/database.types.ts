@@ -1,4 +1,3 @@
-
 export interface TaskRow {
   id: string;
   user_id: string;
@@ -55,5 +54,69 @@ export interface NotificationRow {
   title: string;
   message: string;
   read: boolean;
+  created_at: string;
+}
+
+export interface DailyOutcomeRow {
+  id: string;
+  user_id: string;
+  date: string;
+  prev_day_tasks: any;
+  today_focus: string[];
+  accomplishments: string[];
+  performance_rating: number;
+  lessons_learned: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WeeklyOutcomeRow {
+  id: string;
+  user_id: string;
+  week_start_date: string;
+  work_goals: string[];
+  work_steps: string[];
+  education_goals: string[];
+  education_steps: string[];
+  health_goals: string[];
+  health_steps: string[];
+  reflection: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskBreakdownRow {
+  id: string;
+  parent_task_id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReversePlanningRow {
+  id: string;
+  task_id: string;
+  milestone_title: string;
+  due_date: string;
+  description: string | null;
+  status: string;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TimerSessionRow {
+  id: string;
+  user_id: string;
+  task_id: string | null;
+  start_time: string;
+  end_time: string | null;
+  completed: boolean;
+  work_duration: number;
+  break_duration: number;
+  notes: string | null;
   created_at: string;
 }
