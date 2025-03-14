@@ -25,17 +25,35 @@ const tasksToJson = (tasks: Task[]): Json => {
 // Helper function to convert JSON data back to Task objects
 const jsonToTasks = (data: Json | null): Task[] => {
   if (!data) return [];
+  
+  // Ensure data is an array
   const jsonArray = Array.isArray(data) ? data : [];
   
-  return jsonArray.map(item => ({
-    id: String(item.id || ''),
-    title: String(item.title || ''),
-    description: String(item.description || ''),
-    priority: (item.priority as Task['priority']) || 'medium',
-    status: (item.status as Task['status']) || 'pending',
-    dueDate: item.dueDate ? new Date(String(item.dueDate)) : null,
-    progress: Number(item.progress || 0)
-  }));
+  return jsonArray.map(item => {
+    // First ensure that item is an object (not a primitive value)
+    if (typeof item !== 'object' || item === null) {
+      return {
+        id: '',
+        title: '',
+        description: '',
+        priority: 'medium' as Task['priority'],
+        status: 'pending' as Task['status'],
+        dueDate: null,
+        progress: 0
+      };
+    }
+    
+    // Now safely access properties with type checking
+    return {
+      id: String(item.id || ''),
+      title: String(item.title || ''),
+      description: String(item.description || ''),
+      priority: (String(item.priority || 'medium') as Task['priority']),
+      status: (String(item.status || 'pending') as Task['status']),
+      dueDate: item.dueDate ? new Date(String(item.dueDate)) : null,
+      progress: Number(item.progress || 0)
+    };
+  });
 };
 
 export class ProductivityService {
