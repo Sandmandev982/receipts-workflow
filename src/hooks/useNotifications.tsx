@@ -11,6 +11,10 @@ export interface Notification {
   read: boolean;
   created_at: string;
   user_id: string;
+  task_id?: string;
+  team_id?: string;
+  type?: 'task' | 'message' | 'team' | 'system';
+  action_url?: string;
 }
 
 export const useNotifications = () => {
@@ -113,11 +117,46 @@ export const useNotifications = () => {
     }
   };
 
+  // Delete a notification
+  const deleteNotification = async (id: string) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error deleting notification:', error);
+    } else {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      // Update unread count if the deleted notification was unread
+      const wasUnread = notifications.find(n => n.id === id && !n.read);
+      if (wasUnread) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    }
+  };
+
+  // Navigate to the action URL of a notification
+  const handleNotificationAction = (notification: Notification) => {
+    // Mark as read first
+    markAsRead(notification.id);
+    
+    // If there's an action URL, navigate to it
+    if (notification.action_url) {
+      window.location.href = notification.action_url;
+    }
+  };
+
   return {
     notifications,
     unreadCount,
     loading,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
+    deleteNotification,
+    handleNotificationAction
   };
 };

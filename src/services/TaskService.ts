@@ -31,10 +31,56 @@ export class TaskService {
         progress: task.progress || 0,
         tags: task.tags || [],
         created_at: task.created_at,
-        completed_at: task.completed_at
+        completed_at: task.completed_at,
+        teamId: task.team_id
       }));
     } catch (error) {
       console.error('Error fetching tasks:', error);
+      return [];
+    }
+  }
+
+  static async fetchTeamTasks(teamId: string): Promise<Task[]> {
+    try {
+      // First get all task ids associated with this team
+      const { data: teamTasksData, error: teamTasksError } = await supabase
+        .from('team_tasks')
+        .select('task_id')
+        .eq('team_id', teamId);
+        
+      if (teamTasksError) throw teamTasksError;
+      
+      if (!teamTasksData || teamTasksData.length === 0) return [];
+      
+      // Now fetch the actual tasks
+      const taskIds = teamTasksData.map(item => item.task_id);
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .in('id', taskIds);
+        
+      if (error) throw error;
+      
+      if (!data) return [];
+      
+      return data.map(task => ({
+        id: task.id,
+        title: task.title,
+        description: task.description || '',
+        priority: task.priority as Task['priority'],
+        status: task.status as Task['status'],
+        dueDate: task.due_date ? new Date(task.due_date) : null,
+        dueTime: task.due_time || undefined,
+        reminderSet: task.reminder_set || false,
+        reminderTime: task.reminder_time || undefined,
+        progress: task.progress || 0,
+        tags: task.tags || [],
+        created_at: task.created_at,
+        completed_at: task.completed_at,
+        teamId
+      }));
+    } catch (error) {
+      console.error('Error fetching team tasks:', error);
       return [];
     }
   }
@@ -54,7 +100,8 @@ export class TaskService {
           reminder_time: task.reminderTime,
           progress: task.progress || 0,
           tags: task.tags || [],
-          user_id: userId
+          user_id: userId,
+          team_id: task.teamId
         })
         .select()
         .single();
@@ -65,8 +112,43 @@ export class TaskService {
       await NotificationService.createNotification({
         userId,
         title: 'New Task Created',
-        message: `You've created a new task: ${task.title}`
+        message: `You've created a new task: ${task.title}`,
+        taskId: data.id,
+        type: 'task'
       });
+      
+      // If assigned to a team, add to team_tasks
+      if (task.teamId) {
+        const { error: teamTaskError } = await supabase
+          .from('team_tasks')
+          .insert({
+            team_id: task.teamId,
+            task_id: data.id
+          });
+          
+        if (teamTaskError) throw teamTaskError;
+        
+        // Notify team members
+        const { data: teamMembers } = await supabase
+          .from('team_members')
+          .select('user_id')
+          .eq('team_id', task.teamId);
+          
+        if (teamMembers) {
+          for (const member of teamMembers) {
+            if (member.user_id !== userId) {
+              await NotificationService.createNotification({
+                userId: member.user_id,
+                title: 'New Team Task',
+                message: `A new task "${task.title}" has been added to your team`,
+                taskId: data.id,
+                teamId: task.teamId,
+                type: 'task'
+              });
+            }
+          }
+        }
+      }
       
       // Schedule reminder if enabled
       if (task.reminderSet && task.dueDate) {
@@ -96,7 +178,8 @@ export class TaskService {
         progress: data.progress || 0,
         tags: data.tags || [],
         created_at: data.created_at,
-        completed_at: data.completed_at
+        completed_at: data.completed_at,
+        teamId: data.team_id
       };
     } catch (error) {
       console.error('Error adding task:', error);
@@ -118,11 +201,35 @@ export class TaskService {
           reminder_set: task.reminderSet,
           reminder_time: task.reminderTime,
           progress: task.progress,
-          tags: task.tags
+          tags: task.tags,
+          team_id: task.teamId
         })
         .eq('id', task.id);
       
       if (error) throw error;
+      
+      // If task has been assigned to a team, add to team_tasks
+      if (task.teamId) {
+        // Check if task is already associated with this team
+        const { data: existingTeamTask } = await supabase
+          .from('team_tasks')
+          .select('*')
+          .eq('task_id', task.id)
+          .eq('team_id', task.teamId)
+          .maybeSingle();
+          
+        if (!existingTeamTask) {
+          // Add the task to the team
+          const { error: teamTaskError } = await supabase
+            .from('team_tasks')
+            .insert({
+              team_id: task.teamId,
+              task_id: task.id
+            });
+            
+          if (teamTaskError) throw teamTaskError;
+        }
+      }
       
       return true;
     } catch (error) {
@@ -133,6 +240,15 @@ export class TaskService {
 
   static async deleteTask(id: string): Promise<boolean> {
     try {
+      // First delete any team_task associations
+      const { error: teamTaskError } = await supabase
+        .from('team_tasks')
+        .delete()
+        .eq('task_id', id);
+        
+      if (teamTaskError) throw teamTaskError;
+      
+      // Then delete the task
       const { error } = await supabase
         .from('tasks')
         .delete()
@@ -152,7 +268,7 @@ export class TaskService {
       // Get the current task to compare status
       const { data: currentTask, error: fetchError } = await supabase
         .from('tasks')
-        .select('status, user_id, title')
+        .select('status, user_id, title, team_id')
         .eq('id', id)
         .single();
       
@@ -182,8 +298,33 @@ export class TaskService {
         await NotificationService.createNotification({
           userId: currentTask.user_id,
           title: `Task ${status === 'complete' ? 'Completed' : 'Status Updated'}`,
-          message: `"${currentTask.title}" is now ${status === 'complete' ? 'completed' : status}`
+          message: `"${currentTask.title}" is now ${status === 'complete' ? 'completed' : status}`,
+          taskId: id,
+          type: 'task'
         });
+        
+        // If task belongs to a team and is now complete, notify team members
+        if (status === 'complete' && currentTask.team_id) {
+          const { data: teamMembers } = await supabase
+            .from('team_members')
+            .select('user_id')
+            .eq('team_id', currentTask.team_id);
+            
+          if (teamMembers) {
+            for (const member of teamMembers) {
+              if (member.user_id !== currentTask.user_id) {
+                await NotificationService.createNotification({
+                  userId: member.user_id,
+                  title: 'Team Task Completed',
+                  message: `Task "${currentTask.title}" has been completed`,
+                  taskId: id,
+                  teamId: currentTask.team_id,
+                  type: 'task'
+                });
+              }
+            }
+          }
+        }
       }
       
       return true;
@@ -237,6 +378,40 @@ export class TaskService {
       return true;
     } catch (error) {
       console.error('Error setting task reminder:', error);
+      return false;
+    }
+  }
+
+  static async assignTaskToUser(taskId: string, assignedToUserId: string, assignedByUserId: string): Promise<boolean> {
+    try {
+      // First get the task to get its title
+      const { data: task, error: taskError } = await supabase
+        .from('tasks')
+        .select('title')
+        .eq('id', taskId)
+        .single();
+        
+      if (taskError) throw taskError;
+      
+      // Update the assigned_to field in the tasks table
+      const { error } = await supabase
+        .from('tasks')
+        .update({ assigned_to: assignedToUserId })
+        .eq('id', taskId);
+        
+      if (error) throw error;
+      
+      // Send notification to the assigned user
+      await NotificationService.notifyTaskAssigned(
+        taskId, 
+        assignedToUserId, 
+        assignedByUserId, 
+        task.title
+      );
+      
+      return true;
+    } catch (error) {
+      console.error('Error assigning task:', error);
       return false;
     }
   }

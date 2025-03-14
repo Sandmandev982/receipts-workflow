@@ -5,11 +5,15 @@ export interface NotificationParams {
   userId: string;
   title: string;
   message: string;
+  taskId?: string;
+  teamId?: string;
+  type?: 'task' | 'message' | 'team' | 'system';
+  actionUrl?: string;
 }
 
 export class NotificationService {
   static async createNotification(params: NotificationParams) {
-    const { userId, title, message } = params;
+    const { userId, title, message, taskId, teamId, type = 'system', actionUrl } = params;
 
     const { data, error } = await supabase
       .from('notifications')
@@ -17,6 +21,10 @@ export class NotificationService {
         user_id: userId,
         title,
         message,
+        task_id: taskId,
+        team_id: teamId,
+        type,
+        action_url: actionUrl,
         read: false
       })
       .select()
@@ -62,5 +70,62 @@ export class NotificationService {
       .eq('read', false);
 
     return !error;
+  }
+
+  static async deleteNotification(notificationId: string) {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId);
+
+    return !error;
+  }
+
+  // Task notification helpers
+  static async notifyTaskAssigned(taskId: string, assignedToUserId: string, assignedByUserId: string, taskTitle: string) {
+    return this.createNotification({
+      userId: assignedToUserId,
+      title: 'New Task Assigned',
+      message: `You have been assigned a new task: ${taskTitle}`,
+      taskId,
+      type: 'task',
+      actionUrl: `/tasks?id=${taskId}`
+    });
+  }
+
+  static async notifyTaskCompleted(taskId: string, completedByUserId: string, taskTitle: string, teamId?: string, teamMembers?: string[]) {
+    // If there's a team, notify all team members
+    if (teamId && teamMembers && teamMembers.length > 0) {
+      const promises = teamMembers
+        .filter(memberId => memberId !== completedByUserId) // Don't notify the completer
+        .map(memberId => 
+          this.createNotification({
+            userId: memberId,
+            title: 'Task Completed',
+            message: `Task "${taskTitle}" has been completed`,
+            taskId,
+            teamId,
+            type: 'task',
+            actionUrl: `/tasks?id=${taskId}`
+          })
+        );
+      
+      await Promise.all(promises);
+      return true;
+    }
+    
+    // If no team, just return true as there's no one to notify
+    return true;
+  }
+
+  static async notifyTaskDueSoon(taskId: string, userId: string, taskTitle: string, dueDate: string) {
+    return this.createNotification({
+      userId,
+      title: 'Task Due Soon',
+      message: `Your task "${taskTitle}" is due on ${dueDate}`,
+      taskId,
+      type: 'task',
+      actionUrl: `/tasks?id=${taskId}`
+    });
   }
 }

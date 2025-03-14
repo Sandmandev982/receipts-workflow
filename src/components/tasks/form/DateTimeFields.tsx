@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { CalendarIcon, Clock } from 'lucide-react';
+import { CalendarIcon, Clock, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -19,13 +19,13 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import FormSection from './FormSection';
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 
 interface DateTimeFieldsProps {
   form: UseFormReturn<any>;
@@ -41,8 +41,10 @@ const TIME_OPTIONS = [
 ];
 
 const DateTimeFields: React.FC<DateTimeFieldsProps> = ({ form }) => {
+  const [timeOpen, setTimeOpen] = useState(false);
+
   return (
-    <FormSection>
+    <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
@@ -75,7 +77,7 @@ const DateTimeFields: React.FC<DateTimeFieldsProps> = ({ form }) => {
                     selected={field.value}
                     onSelect={field.onChange}
                     initialFocus
-                    className={cn("p-3 pointer-events-auto")}
+                    className={cn("p-3")}
                   />
                 </PopoverContent>
               </Popover>
@@ -90,30 +92,74 @@ const DateTimeFields: React.FC<DateTimeFieldsProps> = ({ form }) => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Due Time (Optional)</FormLabel>
-              <Select 
-                value={field.value || ''} 
-                onValueChange={field.onChange}
-              >
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a time" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="max-h-[200px] overflow-y-auto">
-                  <SelectItem value="">No specific time</SelectItem>
-                  {TIME_OPTIONS.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={timeOpen} onOpenChange={setTimeOpen}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className={cn(
+                        "w-full justify-between",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? field.value : "Select time"}
+                      <Clock className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search time..." />
+                    <CommandEmpty>No time found.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem 
+                        value=""
+                        onSelect={() => {
+                          form.setValue("dueTime", "");
+                          setTimeOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            field.value === "" ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        No specific time
+                      </CommandItem>
+                    </CommandGroup>
+                    <CommandList>
+                      <CommandGroup>
+                        {TIME_OPTIONS.map((time) => (
+                          <CommandItem
+                            key={time}
+                            value={time}
+                            onSelect={() => {
+                              form.setValue("dueTime", time);
+                              setTimeOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                time === field.value ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {time}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}
         />
       </div>
-    </FormSection>
+    </div>
   );
 };
 
