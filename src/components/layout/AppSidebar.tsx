@@ -16,8 +16,7 @@ import {
   Settings,
   HelpCircle,
   MoonIcon,
-  SunIcon,
-  BadgeHelp
+  SunIcon
 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/useAuth';
@@ -44,14 +43,14 @@ const AppSidebar = () => {
   ];
   
   return (
-    <div className="flex h-full w-full flex-col border-r bg-card">
+    <div className="h-full w-64 border-r bg-card">
       <div className="flex h-14 items-center border-b px-4">
         <Link to="/" className="flex items-center gap-2 font-semibold">
           <CheckSquare className="h-6 w-6 text-primary" />
           <span className="text-xl">Receipts</span>
         </Link>
       </div>
-      <ScrollArea className="flex-1 px-3 py-2">
+      <ScrollArea className="flex-1 h-[calc(100vh-8rem)] px-3 py-2">
         <nav className="space-y-1">
           {menuItems.map((item) => (
             <Link key={item.path} to={item.path}>
@@ -63,7 +62,7 @@ const AppSidebar = () => {
                 )}
               >
                 {item.icon}
-                {item.title}
+                <span className="ml-2">{item.title}</span>
               </Button>
             </Link>
           ))}
