@@ -50,7 +50,7 @@ const TaskHeaderBar: React.FC<TaskHeaderBarProps> = ({
             <Plus className="h-4 w-4 mr-1" /> Add Task
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-md md:max-w-2xl">
+        <DialogContent className="max-w-md md:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Task</DialogTitle>
           </DialogHeader>
