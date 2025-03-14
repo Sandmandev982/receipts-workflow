@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import TaskList from './TaskList';
 import { Task } from './types';
 import { toast } from 'sonner';
+import { NotificationService } from '@/services/NotificationService';
 
 interface TeamTasksListProps {
   teamId: string;
@@ -33,7 +34,6 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
   const fetchTeamTasks = async () => {
     setLoading(true);
     try {
-      // Get all task IDs associated with this team
       const { data: teamTasksData, error: teamTasksError } = await supabase
         .from('team_tasks')
         .select('task_id')
@@ -47,7 +47,6 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
         return;
       }
 
-      // Get the actual tasks
       const taskIds = teamTasksData.map(item => item.task_id);
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
@@ -57,7 +56,6 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
       if (tasksError) throw tasksError;
 
       if (tasksData) {
-        // Convert the data to our Task type
         const formattedTasks: Task[] = tasksData.map(task => ({
           id: task.id,
           title: task.title,
@@ -85,7 +83,6 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
 
   const fetchTeamMembers = async () => {
     try {
-      // First, get all team members for this team
       const { data: memberData, error: memberError } = await supabase
         .from('team_members')
         .select('id, user_id')
@@ -94,7 +91,6 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
       if (memberError) throw memberError;
       
       if (memberData && memberData.length > 0) {
-        // Get the user profiles for each team member
         const userIds = memberData.map(member => member.user_id);
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
@@ -103,7 +99,6 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
           
         if (profilesError) throw profilesError;
         
-        // Map the profile data to our team members structure
         const members = memberData.map(member => {
           const profile = profilesData?.find(p => p.id === member.user_id);
           return {
@@ -129,7 +124,6 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
     if (!user) return;
     
     try {
-      // First create the task
       const { data: taskResult, error: taskError } = await supabase
         .from('tasks')
         .insert({
@@ -143,14 +137,15 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
           reminder_time: taskData.reminderTime,
           progress: taskData.progress,
           tags: taskData.tags,
-          user_id: user.id
+          user_id: user.id,
+          team_id: teamId,
+          assigned_to: taskData.assignedTo
         })
         .select()
         .single();
 
       if (taskError) throw taskError;
 
-      // Then associate it with the team
       const { error: teamTaskError } = await supabase
         .from('team_tasks')
         .insert({
@@ -160,7 +155,15 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
 
       if (teamTaskError) throw teamTaskError;
 
-      // Refresh the task list
+      if (taskData.assignedTo && taskData.assignedTo !== user.id) {
+        await NotificationService.notifyTaskAssigned(
+          taskResult.id,
+          taskData.assignedTo,
+          user.id,
+          taskData.title
+        );
+      }
+
       fetchTeamTasks();
       toast.success('Task added to team');
     } catch (error: any) {
@@ -171,6 +174,7 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
 
   const handleEditTask = async (task: Task) => {
     try {
+      const previousTask = tasks.find(t => t.id === task.id);
       const { error } = await supabase
         .from('tasks')
         .update({
@@ -183,13 +187,22 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
           reminder_set: task.reminderSet,
           reminder_time: task.reminderTime,
           progress: task.progress,
-          tags: task.tags
+          tags: task.tags,
+          assigned_to: task.assignedTo
         })
         .eq('id', task.id);
 
       if (error) throw error;
 
-      // Refresh the task list
+      if (task.assignedTo && previousTask?.assignedTo !== task.assignedTo && user) {
+        await NotificationService.notifyTaskAssigned(
+          task.id,
+          task.assignedTo,
+          user.id,
+          task.title
+        );
+      }
+
       fetchTeamTasks();
       toast.success('Task updated');
     } catch (error: any) {
@@ -200,7 +213,6 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
 
   const handleDeleteTask = async (taskId: string) => {
     try {
-      // First remove the team association
       const { error: teamTaskError } = await supabase
         .from('team_tasks')
         .delete()
@@ -209,7 +221,6 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
 
       if (teamTaskError) throw teamTaskError;
 
-      // Then delete the task itself
       const { error: taskError } = await supabase
         .from('tasks')
         .delete()
@@ -217,7 +228,6 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
 
       if (taskError) throw taskError;
 
-      // Update the UI
       setTasks(prev => prev.filter(task => task.id !== taskId));
       toast.success('Task deleted');
     } catch (error: any) {
@@ -228,14 +238,30 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
 
   const handleStatusChange = async (taskId: string, newStatus: Task['status']) => {
     try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task || !user) return;
+
       const { error } = await supabase
         .from('tasks')
-        .update({ status: newStatus })
+        .update({ 
+          status: newStatus,
+          completed_at: newStatus === 'complete' ? new Date().toISOString() : null
+        })
         .eq('id', taskId);
 
       if (error) throw error;
 
-      // Update the UI
+      if (newStatus === 'complete') {
+        const teamMemberIds = teamMembers.map(member => member.user_id);
+        await NotificationService.notifyTaskCompleted(
+          taskId,
+          user.id,
+          task.title,
+          teamId,
+          teamMemberIds
+        );
+      }
+
       setTasks(prev => 
         prev.map(task => 
           task.id === taskId ? { ...task, status: newStatus } : task

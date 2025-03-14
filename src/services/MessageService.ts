@@ -37,11 +37,22 @@ export class MessageService {
         
       if (error) throw error;
       
+      // Get sender name for notification
+      const { data: senderProfile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', senderId)
+        .single();
+        
+      const senderName = senderProfile 
+        ? `${senderProfile.first_name || ''} ${senderProfile.last_name || ''}`.trim() 
+        : 'Someone';
+      
       // Create a notification for the recipient
       await NotificationService.createNotification({
         userId: recipientId,
         title: 'New Message',
-        message: 'You have received a new direct message',
+        message: `You have received a new direct message from ${senderName}`,
         type: 'message',
         actionUrl: '/messages'
       });
@@ -69,6 +80,17 @@ export class MessageService {
         
       if (error) throw error;
       
+      // Get sender name for notification
+      const { data: senderProfile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', senderId)
+        .single();
+        
+      const senderName = senderProfile 
+        ? `${senderProfile.first_name || ''} ${senderProfile.last_name || ''}`.trim() 
+        : 'Someone';
+      
       // Get all team members except the sender to notify them
       const { data: teamMembers } = await supabase
         .from('team_members')
@@ -91,7 +113,7 @@ export class MessageService {
             await NotificationService.createNotification({
               userId: member.user_id,
               title: 'New Team Message',
-              message: `New message in team "${teamName}"`,
+              message: `New message from ${senderName} in team "${teamName}"`,
               teamId,
               type: 'message',
               actionUrl: `/messages?team=${teamId}`

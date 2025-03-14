@@ -10,7 +10,7 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import { Bell, Check, CheckCheck } from 'lucide-react';
+import { Bell, Check, CheckCheck, MessageSquare, Users, Calendar } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 const NotificationList = () => {
@@ -19,8 +19,22 @@ const NotificationList = () => {
     unreadCount, 
     loading, 
     markAsRead, 
-    markAllAsRead 
+    markAllAsRead,
+    handleNotificationAction
   } = useNotifications();
+
+  const getNotificationIcon = (type?: string) => {
+    switch (type) {
+      case 'message':
+        return <MessageSquare className="h-4 w-4 mr-2 text-blue-500" />;
+      case 'team':
+        return <Users className="h-4 w-4 mr-2 text-green-500" />;
+      case 'task':
+        return <Calendar className="h-4 w-4 mr-2 text-orange-500" />;
+      default:
+        return <Bell className="h-4 w-4 mr-2 text-gray-500" />;
+    }
+  };
 
   if (loading) {
     return (
@@ -63,9 +77,12 @@ const NotificationList = () => {
             <Card 
               key={notification.id} 
               className={notification.read ? 'bg-background' : 'bg-muted/30 border-primary/20'}
+              onClick={() => notification.action_url && handleNotificationAction(notification)}
+              style={{ cursor: notification.action_url ? 'pointer' : 'default' }}
             >
               <CardHeader className="py-2 px-4">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-sm font-medium flex items-center">
+                  {getNotificationIcon(notification.type)}
                   {notification.title}
                 </CardTitle>
               </CardHeader>
@@ -81,7 +98,10 @@ const NotificationList = () => {
                     variant="outline" 
                     size="sm" 
                     className="text-xs w-full" 
-                    onClick={() => markAsRead(notification.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markAsRead(notification.id);
+                    }}
                   >
                     <Check className="mr-1 h-3 w-3" />
                     Mark as read

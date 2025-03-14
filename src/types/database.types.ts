@@ -55,6 +55,10 @@ export interface NotificationRow {
   message: string;
   read: boolean;
   created_at: string;
+  task_id?: string;
+  team_id?: string;
+  type?: 'task' | 'message' | 'team' | 'system';
+  action_url?: string;
 }
 
 export interface DailyOutcomeRow {

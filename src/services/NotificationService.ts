@@ -128,4 +128,26 @@ export class NotificationService {
       actionUrl: `/tasks?id=${taskId}`
     });
   }
+
+  static async notifyMessageReceived(messageId: string, userId: string, senderName: string, teamId?: string, teamName?: string) {
+    return this.createNotification({
+      userId,
+      title: teamId ? `New message in ${teamName || 'team'}` : 'New direct message',
+      message: `You have received a new message from ${senderName}`,
+      teamId,
+      type: 'message',
+      actionUrl: teamId ? `/messages?team=${teamId}` : `/messages`
+    });
+  }
+
+  static async notifyTeamInvite(userId: string, teamId: string, teamName: string, invitedByName: string) {
+    return this.createNotification({
+      userId,
+      title: 'Team Invitation',
+      message: `${invitedByName} has invited you to join the team "${teamName}"`,
+      teamId,
+      type: 'team',
+      actionUrl: `/teams?id=${teamId}`
+    });
+  }
 }
