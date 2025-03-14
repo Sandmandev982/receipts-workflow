@@ -17,6 +17,7 @@ import Teams from "./pages/Teams";
 import Calendar from "./pages/Calendar";
 import Messages from "./pages/Messages";
 import Reports from "./pages/Reports";
+import Tasks from "./pages/Tasks"; // Import the Tasks page
 import Productivity from "./pages/Productivity";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -111,6 +112,11 @@ const App = () => {
                     <Route path="/reports" element={
                       <ProtectedRoute>
                         <Reports />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/tasks" element={
+                      <ProtectedRoute>
+                        <Tasks />
                       </ProtectedRoute>
                     } />
                     <Route path="/productivity" element={

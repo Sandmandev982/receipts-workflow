@@ -43,15 +43,17 @@ const jsonToTasks = (data: Json | null): Task[] => {
       };
     }
     
-    // Now safely access properties with type checking
+    // Use proper type assertion for the item as a record of string keys to Json values
+    const taskData = item as Record<string, Json>;
+    
     return {
-      id: String(item.id || ''),
-      title: String(item.title || ''),
-      description: String(item.description || ''),
-      priority: (String(item.priority || 'medium') as Task['priority']),
-      status: (String(item.status || 'pending') as Task['status']),
-      dueDate: item.dueDate ? new Date(String(item.dueDate)) : null,
-      progress: Number(item.progress || 0)
+      id: String(taskData.id || ''),
+      title: String(taskData.title || ''),
+      description: String(taskData.description || ''),
+      priority: (String(taskData.priority || 'medium') as Task['priority']),
+      status: (String(taskData.status || 'pending') as Task['status']),
+      dueDate: taskData.dueDate ? new Date(String(taskData.dueDate)) : null,
+      progress: Number(taskData.progress || 0)
     };
   });
 };
