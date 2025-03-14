@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { CalendarIcon, Clock } from 'lucide-react';
 import { format } from 'date-fns';
@@ -19,6 +19,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import FormSection from './FormSection';
 
 interface DateTimeFieldsProps {
@@ -26,10 +34,12 @@ interface DateTimeFieldsProps {
 }
 
 const TIME_OPTIONS = [
-  "12:00 AM", "1:00 AM", "2:00 AM", "3:00 AM", "4:00 AM", "5:00 AM", 
-  "6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM",
-  "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", 
-  "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM", "10:00 PM", "11:00 PM"
+  "12:00 AM", "12:30 AM", "1:00 AM", "1:30 AM", "2:00 AM", "2:30 AM", "3:00 AM", "3:30 AM",
+  "4:00 AM", "4:30 AM", "5:00 AM", "5:30 AM", "6:00 AM", "6:30 AM", "7:00 AM", "7:30 AM", 
+  "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
+  "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", 
+  "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM", "6:30 PM", "7:00 PM", "7:30 PM", 
+  "8:00 PM", "8:30 PM", "9:00 PM", "9:30 PM", "10:00 PM", "10:30 PM", "11:00 PM", "11:30 PM"
 ];
 
 const DateTimeFields: React.FC<DateTimeFieldsProps> = ({ form }) => {
@@ -91,7 +101,8 @@ const DateTimeFields: React.FC<DateTimeFieldsProps> = ({ form }) => {
                       <div className="flex-1 flex">
                         <Input 
                           placeholder="e.g., 3:00 PM" 
-                          {...field} 
+                          value={field.value || ''}
+                          onChange={field.onChange}
                           className="rounded-r-none"
                         />
                         <Button 
@@ -104,22 +115,27 @@ const DateTimeFields: React.FC<DateTimeFieldsProps> = ({ form }) => {
                         </Button>
                       </div>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0" align="end">
-                      <div className="max-h-[300px] overflow-y-auto p-1">
-                        {TIME_OPTIONS.map((time) => (
-                          <Button
-                            key={time}
-                            variant="ghost"
-                            className="w-full justify-start text-left font-normal"
-                            onClick={() => {
-                              field.onChange(time);
-                              setTimePickerOpen(false);
-                            }}
-                          >
-                            {time}
-                          </Button>
-                        ))}
-                      </div>
+                    <PopoverContent className="w-[200px] p-1" align="end">
+                      <Command>
+                        <CommandInput placeholder="Search time..." />
+                        <CommandList className="max-h-[200px] overflow-y-auto">
+                          <CommandEmpty>No time found</CommandEmpty>
+                          <CommandGroup>
+                            {TIME_OPTIONS.map((time) => (
+                              <CommandItem
+                                key={time}
+                                value={time}
+                                onSelect={() => {
+                                  field.onChange(time);
+                                  setTimePickerOpen(false);
+                                }}
+                              >
+                                {time}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
                     </PopoverContent>
                   </Popover>
                 </div>

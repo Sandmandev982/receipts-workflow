@@ -1,18 +1,73 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarCheck, CalendarClock, ExternalLink, Video } from 'lucide-react';
+import { CalendarCheck, CalendarClock, ExternalLink, Video, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CalendarIntegrationProps {
   userId: string;
 }
+
+// Mock API for now - in real implementation, would call Supabase edge functions
+const connectGoogleCalendar = async (userId: string) => {
+  // This would actually redirect to Google OAuth flow
+  return new Promise<{success: boolean}>(resolve => {
+    setTimeout(() => {
+      // In real implementation, this would be a redirect to Google OAuth
+      resolve({success: true});
+    }, 1500);
+  });
+};
+
+const connectZoom = async (userId: string, email: string) => {
+  // This would actually connect to Zoom API via backend
+  return new Promise<{success: boolean, meetingUrl: string}>(resolve => {
+    setTimeout(() => {
+      // In real implementation, this would connect to Zoom API
+      resolve({
+        success: true, 
+        meetingUrl: `https://zoom.us/j/${Math.floor(Math.random() * 1000000000)}`
+      });
+    }, 1500);
+  });
+};
+
+// Mock function for getting calendar integration status
+const getIntegrationStatus = async (userId: string) => {
+  // In real implementation, this would check Supabase for stored connections
+  const { data, error } = await supabase
+    .from('user_integrations')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+    
+  if (error && error.code !== 'PGSQL_ERROR') {
+    // If table doesn't exist yet, just return default values
+    return {
+      googleCalendar: false,
+      googleSyncEnabled: false,
+      zoom: false,
+      zoomEmail: '',
+      zoomMeetingUrl: ''
+    };
+  }
+  
+  return data || {
+    googleCalendar: false,
+    googleSyncEnabled: false,
+    zoom: false,
+    zoomEmail: '',
+    zoomMeetingUrl: ''
+  };
+};
 
 const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({ userId }) => {
   // Google Calendar states
@@ -27,25 +82,82 @@ const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({ userId }) => 
   const [zoomMeetingUrl, setZoomMeetingUrl] = useState('');
   
   const { toast } = useToast();
-
-  const handleGCalConnect = async () => {
-    setIsGCalLoading(true);
-    
-    // Simulate API call to connect to Google Calendar
-    setTimeout(() => {
+  
+  // Load integration status
+  const { data: integrationStatus, isLoading: isStatusLoading } = useQuery({
+    queryKey: ['integrationStatus', userId],
+    queryFn: () => getIntegrationStatus(userId),
+    enabled: !!userId,
+    onSuccess: (data) => {
+      setIsGCalConnected(data.googleCalendar || false);
+      setSyncEnabled(data.googleSyncEnabled || false);
+      setIsZoomConnected(data.zoom || false);
+      setZoomEmail(data.zoomEmail || '');
+      setZoomMeetingUrl(data.zoomMeetingUrl || '');
+    }
+  });
+  
+  // Google Calendar connection mutation
+  const gCalendarMutation = useMutation({
+    mutationFn: (userId: string) => connectGoogleCalendar(userId),
+    onMutate: () => {
+      setIsGCalLoading(true);
+    },
+    onSuccess: () => {
       setIsGCalConnected(true);
       setSyncEnabled(true);
-      setIsGCalLoading(false);
       
       toast({
         title: "Calendar Connected",
         description: "Your Google Calendar has been successfully connected",
       });
-    }, 1500);
+    },
+    onError: () => {
+      toast({
+        title: "Connection Failed",
+        description: "Could not connect to Google Calendar. Please try again.",
+        variant: "destructive"
+      });
+    },
+    onSettled: () => {
+      setIsGCalLoading(false);
+    }
+  });
+
+  const handleGCalConnect = async () => {
+    if (!userId) return;
+    gCalendarMutation.mutate(userId);
   };
 
+  // Zoom connection mutation
+  const zoomMutation = useMutation({
+    mutationFn: ({userId, email}: {userId: string, email: string}) => connectZoom(userId, email),
+    onMutate: () => {
+      setIsZoomLoading(true);
+    },
+    onSuccess: (data) => {
+      setIsZoomConnected(true);
+      setZoomMeetingUrl(data.meetingUrl);
+      
+      toast({
+        title: "Zoom Connected",
+        description: "Your Zoom account has been successfully connected",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Connection Failed",
+        description: "Could not connect to Zoom. Please try again.",
+        variant: "destructive"
+      });
+    },
+    onSettled: () => {
+      setIsZoomLoading(false);
+    }
+  });
+
   const handleZoomConnect = async () => {
-    if (!zoomEmail) {
+    if (!userId || !zoomEmail) {
       toast({
         title: "Email Required",
         description: "Please enter your Zoom email address",
@@ -54,19 +166,7 @@ const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({ userId }) => 
       return;
     }
     
-    setIsZoomLoading(true);
-    
-    // Simulate API call to connect to Zoom
-    setTimeout(() => {
-      setIsZoomConnected(true);
-      setZoomMeetingUrl(`https://zoom.us/j/${Math.floor(Math.random() * 1000000000)}`);
-      setIsZoomLoading(false);
-      
-      toast({
-        title: "Zoom Connected",
-        description: "Your Zoom account has been successfully connected",
-      });
-    }, 1500);
+    zoomMutation.mutate({userId, email: zoomEmail});
   };
 
   const handleToggleSync = (enabled: boolean) => {
@@ -99,6 +199,27 @@ const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({ userId }) => 
       description: "Your Zoom account has been disconnected",
     });
   };
+
+  if (isStatusLoading) {
+    return (
+      <Card className="w-full shadow-md">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarClock className="h-5 w-5" />
+            Integrations
+          </CardTitle>
+          <CardDescription>
+            Loading your integration status...
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-10">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full shadow-md">
@@ -140,6 +261,18 @@ const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({ userId }) => 
                     checked={syncEnabled} 
                     onCheckedChange={handleToggleSync} 
                   />
+                </div>
+                
+                <div className="rounded-md border p-3 bg-muted/40">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Demo Mode</p>
+                      <p className="text-xs text-muted-foreground">
+                        In a real implementation, this would connect to the actual Google Calendar API through OAuth. For this demo, we're simulating the connection.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </>
             ) : (
@@ -210,6 +343,18 @@ const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({ userId }) => 
                   <p className="text-sm text-muted-foreground">
                     Use this URL to create meetings directly from your tasks
                   </p>
+                </div>
+                
+                <div className="rounded-md border p-3 bg-muted/40">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Demo Mode</p>
+                      <p className="text-xs text-muted-foreground">
+                        In a real implementation, this would connect to the actual Zoom API. For this demo, we're simulating the connection.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </>
             ) : (
