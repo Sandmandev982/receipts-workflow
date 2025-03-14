@@ -1,12 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { CalendarIcon, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { Input } from '@/components/ui/input';
 import { 
   FormField, 
   FormItem, 
@@ -20,13 +19,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import FormSection from './FormSection';
 
 interface DateTimeFieldsProps {
@@ -43,8 +41,6 @@ const TIME_OPTIONS = [
 ];
 
 const DateTimeFields: React.FC<DateTimeFieldsProps> = ({ form }) => {
-  const [timePickerOpen, setTimePickerOpen] = useState(false);
-
   return (
     <FormSection>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -94,52 +90,24 @@ const DateTimeFields: React.FC<DateTimeFieldsProps> = ({ form }) => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Due Time (Optional)</FormLabel>
-              <FormControl>
-                <div className="flex">
-                  <Popover open={timePickerOpen} onOpenChange={setTimePickerOpen}>
-                    <PopoverTrigger asChild>
-                      <div className="flex-1 flex">
-                        <Input 
-                          placeholder="e.g., 3:00 PM" 
-                          value={field.value || ''}
-                          onChange={field.onChange}
-                          className="rounded-r-none"
-                        />
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="icon" 
-                          className="rounded-l-none border-l-0"
-                        >
-                          <Clock className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-1" align="end">
-                      <Command>
-                        <CommandInput placeholder="Search time..." />
-                        <CommandList className="max-h-[200px] overflow-y-auto">
-                          <CommandEmpty>No time found</CommandEmpty>
-                          <CommandGroup>
-                            {TIME_OPTIONS.map((time) => (
-                              <CommandItem
-                                key={time}
-                                value={time}
-                                onSelect={() => {
-                                  field.onChange(time);
-                                  setTimePickerOpen(false);
-                                }}
-                              >
-                                {time}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </FormControl>
+              <Select 
+                value={field.value || ''} 
+                onValueChange={field.onChange}
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a time" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="max-h-[200px] overflow-y-auto">
+                  <SelectItem value="">No specific time</SelectItem>
+                  {TIME_OPTIONS.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

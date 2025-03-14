@@ -1,11 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,10 +22,29 @@ interface CalendarDay {
   tasks: Task[];
 }
 
+// Helper function to convert Supabase task to our app Task type
+const convertSupabaseTaskToTask = (task: any): Task => {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description || '',
+    priority: task.priority as any,
+    status: task.status as any,
+    dueDate: task.due_date ? new Date(task.due_date) : null,
+    dueTime: task.due_time,
+    reminderSet: task.reminder_set,
+    reminderTime: task.reminder_time,
+    emailNotification: task.email_notification,
+    notificationEmail: task.notification_email,
+    progress: task.progress || 0,
+    tags: task.tags || [],
+    // Add any other fields needed
+  };
+};
+
 const CalendarView: React.FC<CalendarViewProps> = ({ userId }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const { toast } = useToast();
-  const { user } = useAuth();
   
   // Fetch tasks for the current user
   const { data: tasks, isLoading, error } = useQuery({
@@ -45,7 +63,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ userId }) => {
         .lte('due_date', endDate);
         
       if (error) throw error;
-      return data as Task[];
+      
+      // Convert Supabase data to our Task type
+      return (data || []).map(convertSupabaseTaskToTask);
     },
     enabled: !!userId,
   });
@@ -66,9 +86,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ userId }) => {
     return daysInMonth.map(date => {
       // Find tasks for this day
       const dayTasks = tasks?.filter(task => {
-        if (!task.due_date) return false;
-        const taskDate = new Date(task.due_date);
-        return isSameDay(taskDate, date);
+        if (!task.dueDate) return false;
+        return isSameDay(task.dueDate, date);
       }) || [];
       
       return {

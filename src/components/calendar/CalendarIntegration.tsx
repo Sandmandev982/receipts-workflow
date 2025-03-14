@@ -10,10 +10,18 @@ import { CalendarCheck, CalendarClock, ExternalLink, Video, AlertCircle } from '
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 
 interface CalendarIntegrationProps {
   userId: string;
+}
+
+// Mock type for integration status
+interface IntegrationStatus {
+  googleCalendar: boolean;
+  googleSyncEnabled: boolean;
+  zoom: boolean;
+  zoomEmail: string;
+  zoomMeetingUrl: string;
 }
 
 // Mock API for now - in real implementation, would call Supabase edge functions
@@ -41,26 +49,9 @@ const connectZoom = async (userId: string, email: string) => {
 };
 
 // Mock function for getting calendar integration status
-const getIntegrationStatus = async (userId: string) => {
+const getIntegrationStatus = async (userId: string): Promise<IntegrationStatus> => {
   // In real implementation, this would check Supabase for stored connections
-  const { data, error } = await supabase
-    .from('user_integrations')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
-    
-  if (error && error.code !== 'PGSQL_ERROR') {
-    // If table doesn't exist yet, just return default values
-    return {
-      googleCalendar: false,
-      googleSyncEnabled: false,
-      zoom: false,
-      zoomEmail: '',
-      zoomMeetingUrl: ''
-    };
-  }
-  
-  return data || {
+  return {
     googleCalendar: false,
     googleSyncEnabled: false,
     zoom: false,
@@ -87,15 +78,19 @@ const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({ userId }) => 
   const { data: integrationStatus, isLoading: isStatusLoading } = useQuery({
     queryKey: ['integrationStatus', userId],
     queryFn: () => getIntegrationStatus(userId),
-    enabled: !!userId,
-    onSuccess: (data) => {
-      setIsGCalConnected(data.googleCalendar || false);
-      setSyncEnabled(data.googleSyncEnabled || false);
-      setIsZoomConnected(data.zoom || false);
-      setZoomEmail(data.zoomEmail || '');
-      setZoomMeetingUrl(data.zoomMeetingUrl || '');
-    }
+    enabled: !!userId
   });
+  
+  // Handle data once it's loaded
+  useEffect(() => {
+    if (integrationStatus) {
+      setIsGCalConnected(integrationStatus.googleCalendar || false);
+      setSyncEnabled(integrationStatus.googleSyncEnabled || false);
+      setIsZoomConnected(integrationStatus.zoom || false);
+      setZoomEmail(integrationStatus.zoomEmail || '');
+      setZoomMeetingUrl(integrationStatus.zoomMeetingUrl || '');
+    }
+  }, [integrationStatus]);
   
   // Google Calendar connection mutation
   const gCalendarMutation = useMutation({
