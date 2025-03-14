@@ -1,4 +1,3 @@
-
 export interface Task {
   id: string;
   title: string;
@@ -32,6 +31,12 @@ export interface Task {
   has_subtasks?: boolean;
   has_reverse_plan?: boolean;
   start_date?: Date | null;
+  // Additional SMART fields
+  expected_outcome?: string;
+  metrics?: string;
+  resources_needed?: string;
+  obstacles?: string;
+  dependencies?: string;
 }
 
 export type TaskStatus = 'pending' | 'in-progress' | 'complete';

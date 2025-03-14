@@ -99,7 +99,23 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
         name: assignedTeamMember.name,
         initials: assignedTeamMember.name.substring(0, 2).toUpperCase()
       } : undefined,
-      teamId: data.teamId || undefined
+      teamId: data.teamId || undefined,
+      // SMART task fields
+      specific: data.specific,
+      measurable: data.measurable,
+      achievable: data.achievable,
+      relevant: data.relevant,
+      time_bound: data.time_bound,
+      // Additional fields
+      start_date: data.start_date,
+      has_subtasks: data.has_subtasks,
+      has_reverse_plan: data.has_reverse_plan,
+      // New SMART fields
+      expected_outcome: data.expected_outcome,
+      metrics: data.metrics,
+      resources_needed: data.resources_needed,
+      obstacles: data.obstacles,
+      dependencies: data.dependencies
     };
     
     onSubmit(updatedTask);

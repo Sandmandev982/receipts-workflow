@@ -65,7 +65,13 @@ const TaskForm: React.FC<TaskFormProps> = ({
       // Additional fields
       start_date: task.start_date || undefined,
       has_subtasks: task.has_subtasks || false,
-      has_reverse_plan: task.has_reverse_plan || false
+      has_reverse_plan: task.has_reverse_plan || false,
+      // New SMART fields
+      expected_outcome: task.expected_outcome || '',
+      metrics: task.metrics || '',
+      resources_needed: task.resources_needed || '',
+      obstacles: task.obstacles || '',
+      dependencies: task.dependencies || ''
     } : {
       title: '',
       description: '',
@@ -90,7 +96,13 @@ const TaskForm: React.FC<TaskFormProps> = ({
       // Additional fields
       start_date: undefined,
       has_subtasks: false,
-      has_reverse_plan: false
+      has_reverse_plan: false,
+      // New SMART fields
+      expected_outcome: '',
+      metrics: '',
+      resources_needed: '',
+      obstacles: '',
+      dependencies: ''
     },
   });
 
