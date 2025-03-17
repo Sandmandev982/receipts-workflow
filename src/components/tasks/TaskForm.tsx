@@ -2,10 +2,10 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Task } from './types';
+import { Task, TaskFormValues } from './types';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { taskFormSchema, TaskFormValues } from './form/TaskFormSchema';
+import { taskFormSchema } from './form/TaskFormSchema';
 import { useAuth } from '@/hooks/useAuth';
 
 // Import all the form component pieces
@@ -27,7 +27,7 @@ interface TeamOption {
 interface TaskFormProps {
   task?: Task;
   onSubmit: (data: TaskFormValues) => void;
-  teamMembers?: Array<{ id: string; name: string }>;
+  teamMembers?: Array<{ id: string; name: string; initials?: string; avatar?: string }>;
   teams?: TeamOption[];
 }
 
@@ -39,6 +39,11 @@ const TaskForm: React.FC<TaskFormProps> = ({
 }) => {
   const { user } = useAuth();
   
+  // Extract assignedTo ID if it's an object
+  const assignedToId = task?.assignedTo && typeof task.assignedTo === 'object' 
+    ? task.assignedTo.id 
+    : task?.assignedTo as string | undefined;
+  
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: task ? {
@@ -46,7 +51,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
       description: task.description,
       priority: task.priority,
       status: task.status,
-      dueDate: task.dueDate,
+      dueDate: task.dueDate || new Date(),
       dueTime: task.dueTime || '',
       reminderEnabled: task.reminderSet || false,
       reminderTime: task.reminderTime || '1 hour before',
@@ -54,7 +59,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
       notificationEmail: task.notificationEmail || user?.email || '',
       progress: task.progress || 0,
       tags: task.tags ? task.tags.join(', ') : '',
-      assignedTo: task.assignedTo?.id || '',
+      assignedTo: assignedToId || '',
       teamId: task.teamId || '',
       // SMART task fields
       specific: task.specific || '',

@@ -1,5 +1,6 @@
 
 import { z } from 'zod';
+import { TaskFormValues } from '../types';
 
 export const taskFormSchema = z.object({
   title: z.string().min(1, { message: 'Title is required' }),
@@ -35,4 +36,4 @@ export const taskFormSchema = z.object({
   dependencies: z.string().optional()
 });
 
-export type TaskFormValues = z.infer<typeof taskFormSchema>;
+export type { TaskFormValues };

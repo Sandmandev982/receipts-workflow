@@ -72,6 +72,8 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
   };
 
   const handleSubmit = (data: TaskFormValues) => {
+    if (!task) return;
+    
     // Process the tags into an array if they exist
     const tags = data.tags ? data.tags.split(',').map((tag: string) => tag.trim()) : [];
     
@@ -81,7 +83,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
       : undefined;
     
     const updatedTask: Task = {
-      ...(task as Task), // We know task is non-null here because we check in the component
+      ...task,
       title: data.title,
       description: data.description,
       priority: data.priority,

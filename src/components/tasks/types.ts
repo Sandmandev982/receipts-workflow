@@ -54,7 +54,7 @@ export interface TaskFormValues {
   description: string;
   priority: TaskPriority;
   status: TaskStatus;
-  dueDate: Date | null;
+  dueDate: Date;
   dueTime?: string;
   reminderEnabled: boolean;
   reminderTime?: string;
@@ -88,17 +88,21 @@ export interface TaskFormValues {
 // Add DailyOutcome type for productivity features
 export interface DailyOutcome {
   id?: string;
+  user_id: string;
   date: Date;
   prev_day_tasks?: Task[];
   today_focus: string[];
   accomplishments: string[];
   performance_rating: number;
   lessons_learned?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Add WeeklyOutcome type for productivity features
 export interface WeeklyOutcome {
   id?: string;
+  user_id: string;
   week_start_date: Date;
   work_goals: string[];
   work_steps: string[];
@@ -107,6 +111,8 @@ export interface WeeklyOutcome {
   health_goals: string[];
   health_steps: string[];
   reflection?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Add Subtask type
@@ -146,4 +152,5 @@ export interface TimerSession {
   break_duration: number;
   notes?: string;
   created_at?: string;
+  task?: Task;
 }

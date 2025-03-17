@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -68,7 +69,15 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
           reminderTime: task.reminder_time || undefined,
           progress: task.progress || 0,
           tags: task.tags || [],
-          teamId: teamId
+          teamId: teamId,
+          created_at: task.created_at,
+          updated_at: task.updated_at,
+          completed_at: task.completed_at,
+          assignedTo: task.assigned_to ? {
+            id: task.assigned_to,
+            name: 'Loading...',
+            initials: '...'
+          } : undefined
         }));
         
         setTasks(formattedTasks);
@@ -124,6 +133,15 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
     if (!user) return;
     
     try {
+      let assignedToUserId: string | undefined;
+      
+      // Handle the assignedTo - it can be a string or an object
+      if (taskData.assignedTo && typeof taskData.assignedTo === 'object') {
+        assignedToUserId = taskData.assignedTo.id;
+      } else if (taskData.assignedTo && typeof taskData.assignedTo === 'string') {
+        assignedToUserId = taskData.assignedTo;
+      }
+      
       const { data: taskResult, error: taskError } = await supabase
         .from('tasks')
         .insert({
@@ -139,7 +157,7 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
           tags: taskData.tags,
           user_id: user.id,
           team_id: teamId,
-          assigned_to: taskData.assignedTo
+          assigned_to: assignedToUserId
         })
         .select()
         .single();
@@ -155,10 +173,10 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
 
       if (teamTaskError) throw teamTaskError;
 
-      if (taskData.assignedTo && taskData.assignedTo !== user.id) {
+      if (assignedToUserId && assignedToUserId !== user.id) {
         await NotificationService.notifyTaskAssigned(
           taskResult.id,
-          taskData.assignedTo,
+          assignedToUserId,
           user.id,
           taskData.title
         );
@@ -175,6 +193,16 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
   const handleEditTask = async (task: Task) => {
     try {
       const previousTask = tasks.find(t => t.id === task.id);
+      
+      let assignedToUserId: string | undefined;
+      
+      // Handle the assignedTo - it can be a string or an object
+      if (task.assignedTo && typeof task.assignedTo === 'object') {
+        assignedToUserId = task.assignedTo.id;
+      } else if (task.assignedTo && typeof task.assignedTo === 'string') {
+        assignedToUserId = task.assignedTo;
+      }
+      
       const { error } = await supabase
         .from('tasks')
         .update({
@@ -188,16 +216,20 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
           reminder_time: task.reminderTime,
           progress: task.progress,
           tags: task.tags,
-          assigned_to: task.assignedTo
+          assigned_to: assignedToUserId
         })
         .eq('id', task.id);
 
       if (error) throw error;
 
-      if (task.assignedTo && previousTask?.assignedTo !== task.assignedTo && user) {
+      const previousAssignedId = previousTask?.assignedTo && typeof previousTask.assignedTo === 'object' 
+        ? previousTask.assignedTo.id 
+        : (typeof previousTask?.assignedTo === 'string' ? previousTask.assignedTo : undefined);
+        
+      if (assignedToUserId && previousAssignedId !== assignedToUserId && user) {
         await NotificationService.notifyTaskAssigned(
           task.id,
-          task.assignedTo,
+          assignedToUserId,
           user.id,
           task.title
         );
