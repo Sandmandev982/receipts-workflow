@@ -22,7 +22,7 @@ interface TaskEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (task: Task) => void;
-  teamMembers?: Array<{ id: string; name: string }>;
+  teamMembers?: Array<{ id: string; name: string; initials?: string; avatar?: string }>;
 }
 
 const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
@@ -97,7 +97,8 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
       assignedTo: assignedTeamMember ? {
         id: assignedTeamMember.id,
         name: assignedTeamMember.name,
-        initials: assignedTeamMember.name.substring(0, 2).toUpperCase()
+        initials: assignedTeamMember.initials,
+        avatar: assignedTeamMember.avatar
       } : undefined,
       teamId: data.teamId || undefined,
       // SMART task fields
