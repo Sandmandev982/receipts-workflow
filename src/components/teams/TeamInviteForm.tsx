@@ -12,7 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { TeamService } from '@/services/TeamService';
 import { useToast } from '@/hooks/use-toast';
-import { NotificationService } from '@/services/NotificationService';
+// Import the service directly to avoid circular dependency
+import { NotificationCore } from '@/services/notification/NotificationCore';
 
 const inviteFormSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' })
@@ -77,13 +78,15 @@ const TeamInviteForm: React.FC<TeamInviteFormProps> = ({ teamId, teamName, onInv
       const success = await TeamService.addTeamMember(teamId, userData.id);
       
       if (success) {
-        // Send notification to the invited user
-        await NotificationService.notifyTeamInvite(
-          userData.id,
-          teamId,
-          teamName,
-          inviterName
-        );
+        // Send notification directly using NotificationCore to avoid circular dependency
+        await NotificationCore.createNotification({
+          userId: userData.id,
+          title: 'Team Invitation',
+          message: `${inviterName} has invited you to join ${teamName}`,
+          type: 'team',
+          teamId: teamId,
+          actionUrl: '/teams'
+        });
         
         toast({
           title: 'Invitation sent',

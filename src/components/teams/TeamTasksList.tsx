@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Task } from '@/components/tasks/types';
+import { Task, TaskStatus } from '@/components/tasks/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Filter, Calendar } from 'lucide-react';
@@ -49,12 +49,12 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId, teamName }) => {
     });
   };
 
-  const handleTaskStatusChange = async (taskId: string, status: Task['status']) => {
-    const success = await TaskService.updateTaskStatus(taskId, status);
+  const handleTaskStatusChange = (taskId: string) => async (newStatus: TaskStatus) => {
+    const success = await TaskService.updateTaskStatus(taskId, newStatus);
     if (success) {
       setTasks(prev => 
         prev.map(task => 
-          task.id === taskId ? { ...task, status } : task
+          task.id === taskId ? { ...task, status: newStatus } : task
         )
       );
     }
@@ -135,8 +135,8 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId, teamName }) => {
                   <DialogTitle>Create Team Task</DialogTitle>
                 </DialogHeader>
                 <TaskForm 
-                  teamId={teamId} 
-                  onTaskCreated={handleTaskCreated} 
+                  onTaskCreated={handleTaskCreated}
+                  defaultValues={{ teamId }}
                 />
               </DialogContent>
             </Dialog>
@@ -191,9 +191,9 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId, teamName }) => {
               <TaskCard 
                 key={task.id} 
                 task={task} 
-                onStatusChange={handleTaskStatusChange}
-                onDeleted={handleTaskDeleted}
-                onAssignToUser={handleAssignTask}
+                onStatusChange={handleTaskStatusChange(task.id)}
+                onDeleted={() => handleTaskDeleted(task.id)}
+                onAssignToUser={(userId) => handleAssignTask(task.id, userId)}
                 showTeamActions
                 teamId={teamId}
               />

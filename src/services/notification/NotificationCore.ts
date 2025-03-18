@@ -1,6 +1,25 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { NotificationParams, NotificationFetchOptions } from './NotificationTypes';
+
+// Define the NotificationParams interface here to avoid circular imports
+export interface NotificationParams {
+  userId: string;
+  title: string;
+  message: string;
+  taskId?: string;
+  teamId?: string;
+  type?: 'task' | 'message' | 'team' | 'system';
+  actionUrl?: string;
+  priority?: 'normal' | 'high' | 'low';
+  sendEmail?: boolean;
+  emailAddress?: string;
+}
+
+export interface NotificationFetchOptions {
+  unreadOnly?: boolean;
+  type?: 'task' | 'message' | 'team' | 'system';
+  limit?: number;
+}
 
 /**
  * Core notification functions for creating and managing notifications

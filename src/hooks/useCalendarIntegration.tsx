@@ -17,20 +17,11 @@ export const useCalendarIntegration = () => {
 
     try {
       setLoading(true);
-      // Use a more generic approach to avoid type errors
-      const { data, error } = await supabase
-        .from('calendar_integrations')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('provider', 'google')
-        .maybeSingle();
+      // Use a more generic approach to avoid type errors with Supabase client
+      const result = await supabase
+        .rpc('check_calendar_connection', { user_id_param: user.id });
 
-      if (error) {
-        console.error('Error checking calendar connection:', error);
-        return false;
-      }
-
-      const isConnected = !!data;
+      const isConnected = result.data || false;
       setConnected(isConnected);
       return isConnected;
     } catch (error) {
