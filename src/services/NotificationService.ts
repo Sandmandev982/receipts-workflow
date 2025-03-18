@@ -188,7 +188,8 @@ export class NotificationService {
   static async notifyTaskCompleted(taskId: string, completedByUserId: string, taskTitle: string, teamId?: string, teamMembers?: string[]) {
     // If there's a team, notify all team members
     if (teamId && teamMembers && teamMembers.length > 0) {
-      const promises = teamMembers
+      // Use Promise.all with a manually created array of promises to avoid TypeScript issues
+      const notificationPromises = teamMembers
         .filter(memberId => memberId !== completedByUserId) // Don't notify the completer
         .map(memberId => 
           this.createNotification({
@@ -202,7 +203,7 @@ export class NotificationService {
           })
         );
       
-      await Promise.all(promises);
+      await Promise.all(notificationPromises);
       return true;
     }
     

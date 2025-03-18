@@ -1,0 +1,6 @@
+
+[build]
+language = "deno"
+
+[deploy]
+run-commands = ["deno cache index.ts"]
