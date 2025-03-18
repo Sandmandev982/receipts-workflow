@@ -35,18 +35,19 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
   const fetchTeamTasks = async () => {
     setLoading(true);
     try {
-      // First check if we need to add the assigned_to column to the tasks table
-      const { data: columnCheck, error: columnError } = await supabase
-        .from('tasks')
-        .select('assigned_to')
-        .limit(1);
-      
-      // If the column doesn't exist, show an error and don't proceed
-      if (columnError && columnError.message.includes("column 'assigned_to' does not exist")) {
-        console.error('Error: assigned_to column is missing from tasks table');
-        toast.error('Database schema error: Please add the assigned_to column to the tasks table');
-        setLoading(false);
-        return;
+      // Check if the assigned_to column exists in the tasks table
+      try {
+        const { data: columnCheck, error: columnError } = await supabase
+          .from('tasks')
+          .select('assigned_to')
+          .limit(1);
+        
+        // If there's an error that's not about missing column, log it
+        if (columnError && !columnError.message.includes("column 'assigned_to' does not exist")) {
+          console.error('Error checking assigned_to column:', columnError);
+        }
+      } catch (error) {
+        console.error('Error checking assigned_to column:', error);
       }
 
       const { data: teamTasksData, error: teamTasksError } = await supabase
@@ -70,7 +71,7 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
       const taskIds = teamTasksData.map(item => item.task_id);
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
-        .select('*, assigned_to')
+        .select('*')
         .in('id', taskIds);
 
       if (tasksError) {
@@ -173,10 +174,12 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
       let assignedToUserId: string | undefined;
       
       // Handle the assignedTo - it can be a string or an object
-      if (taskData.assignedTo && typeof taskData.assignedTo === 'object') {
-        assignedToUserId = taskData.assignedTo.id;
-      } else if (taskData.assignedTo && typeof taskData.assignedTo === 'string') {
-        assignedToUserId = taskData.assignedTo;
+      if (taskData.assignedTo) {
+        if (typeof taskData.assignedTo === 'object' && taskData.assignedTo !== null && 'id' in taskData.assignedTo) {
+          assignedToUserId = taskData.assignedTo.id;
+        } else if (typeof taskData.assignedTo === 'string') {
+          assignedToUserId = taskData.assignedTo;
+        }
       }
       
       const { data: taskResult, error: taskError } = await supabase

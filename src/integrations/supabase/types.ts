@@ -234,24 +234,31 @@ export type Database = {
       tasks: {
         Row: {
           achievable: boolean | null
+          assigned_to: string | null
           completed_at: string | null
           created_at: string
+          dependencies: string | null
           description: string | null
           due_date: string | null
           due_time: string | null
+          expected_outcome: string | null
           has_reverse_plan: boolean | null
           has_subtasks: boolean | null
           id: string
           measurable: string | null
+          metrics: string | null
+          obstacles: string | null
           priority: string
           progress: number | null
           relevant: string | null
           reminder_set: boolean | null
           reminder_time: string | null
+          resources_needed: string | null
           specific: string | null
           start_date: string | null
           status: string
           tags: string[] | null
+          team_id: string | null
           time_bound: boolean | null
           title: string
           updated_at: string
@@ -259,24 +266,31 @@ export type Database = {
         }
         Insert: {
           achievable?: boolean | null
+          assigned_to?: string | null
           completed_at?: string | null
           created_at?: string
+          dependencies?: string | null
           description?: string | null
           due_date?: string | null
           due_time?: string | null
+          expected_outcome?: string | null
           has_reverse_plan?: boolean | null
           has_subtasks?: boolean | null
           id?: string
           measurable?: string | null
+          metrics?: string | null
+          obstacles?: string | null
           priority?: string
           progress?: number | null
           relevant?: string | null
           reminder_set?: boolean | null
           reminder_time?: string | null
+          resources_needed?: string | null
           specific?: string | null
           start_date?: string | null
           status?: string
           tags?: string[] | null
+          team_id?: string | null
           time_bound?: boolean | null
           title: string
           updated_at?: string
@@ -284,30 +298,45 @@ export type Database = {
         }
         Update: {
           achievable?: boolean | null
+          assigned_to?: string | null
           completed_at?: string | null
           created_at?: string
+          dependencies?: string | null
           description?: string | null
           due_date?: string | null
           due_time?: string | null
+          expected_outcome?: string | null
           has_reverse_plan?: boolean | null
           has_subtasks?: boolean | null
           id?: string
           measurable?: string | null
+          metrics?: string | null
+          obstacles?: string | null
           priority?: string
           progress?: number | null
           relevant?: string | null
           reminder_set?: boolean | null
           reminder_time?: string | null
+          resources_needed?: string | null
           specific?: string | null
           start_date?: string | null
           status?: string
           tags?: string[] | null
+          team_id?: string | null
           time_bound?: boolean | null
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_members: {
         Row: {
