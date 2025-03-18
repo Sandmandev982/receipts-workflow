@@ -23,6 +23,7 @@ export interface Task {
   };
   emailNotification?: boolean;
   notificationEmail?: string;
+  calendar_event_id?: string;
   
   // SMART task fields
   specific?: string;

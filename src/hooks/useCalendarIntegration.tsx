@@ -17,12 +17,13 @@ export const useCalendarIntegration = () => {
 
     try {
       setLoading(true);
+      // Use a more generic approach to avoid type errors
       const { data, error } = await supabase
         .from('calendar_integrations')
         .select('*')
         .eq('user_id', user.id)
         .eq('provider', 'google')
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error checking calendar connection:', error);

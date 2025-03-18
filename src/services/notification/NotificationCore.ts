@@ -46,14 +46,15 @@ export class NotificationCore {
       // If email notification is requested, send it using Supabase edge function
       if (sendEmail && emailAddress) {
         try {
+          // Use a simplified approach to avoid type errors
           await supabase.functions.invoke('send-notification-email', {
-            body: JSON.stringify({
+            body: {
               email: emailAddress,
               subject: title,
               message: message,
               taskId,
               actionUrl
-            }),
+            },
           });
         } catch (emailError) {
           console.error('Error sending email notification:', emailError);
