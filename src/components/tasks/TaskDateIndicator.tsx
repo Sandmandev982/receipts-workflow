@@ -1,41 +1,78 @@
 
 import React from 'react';
-import { format, isToday, isTomorrow, isBefore, isAfter } from 'date-fns';
+import { format, isToday, isTomorrow, isBefore, isAfter, addDays, differenceInDays } from 'date-fns';
 import { Task } from './types';
+import { Clock, Calendar, AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export interface TaskDateIndicatorProps {
   task: Task;
+  showIcon?: boolean;
+  className?: string;
 }
 
-export const TaskDateIndicator: React.FC<TaskDateIndicatorProps> = ({ task }) => {
+export const TaskDateIndicator: React.FC<TaskDateIndicatorProps> = ({ 
+  task, 
+  showIcon = true,
+  className 
+}) => {
   if (!task.dueDate) {
-    return <span className="text-xs text-muted-foreground">No due date</span>;
+    return (
+      <span className={cn("text-xs text-muted-foreground flex items-center", className)}>
+        {showIcon && <Calendar className="h-3 w-3 mr-1 opacity-70" />}
+        No due date
+      </span>
+    );
   }
 
   const dueDate = new Date(task.dueDate);
   const now = new Date();
+  const daysUntilDue = differenceInDays(dueDate, now);
 
   let dateString = format(dueDate, 'MMM d, yyyy');
   let timeString = task.dueTime ? task.dueTime : '';
-  let className = 'text-xs';
+  let displayClasses = "text-xs flex items-center";
+  let icon = <Calendar className="h-3 w-3 mr-1" />;
 
   if (task.status === 'complete') {
-    className += ' text-muted-foreground line-through';
+    displayClasses = cn(displayClasses, "text-muted-foreground line-through", className);
   } else if (isBefore(dueDate, now)) {
-    className += ' text-destructive font-medium';
-    dateString = `Overdue: ${dateString}`;
+    // Overdue
+    displayClasses = cn(displayClasses, "text-destructive font-medium", className);
+    icon = <AlertTriangle className="h-3 w-3 mr-1" />;
+    
+    const daysOverdue = differenceInDays(now, dueDate);
+    if (daysOverdue === 0) {
+      dateString = "Due today (overdue)";
+    } else if (daysOverdue === 1) {
+      dateString = "Due yesterday";
+    } else {
+      dateString = `Overdue by ${daysOverdue} days`;
+    }
   } else if (isToday(dueDate)) {
-    className += ' text-amber-500 font-medium';
-    dateString = `Today: ${dateString}`;
+    displayClasses = cn(displayClasses, "text-amber-500 font-medium", className);
+    icon = <Clock className="h-3 w-3 mr-1" />;
+    dateString = "Due today";
   } else if (isTomorrow(dueDate)) {
-    className += ' text-amber-400';
-    dateString = `Tomorrow: ${dateString}`;
-  } else if (isAfter(dueDate, now) && isBefore(dueDate, new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000))) {
-    className += ' text-amber-300';
+    displayClasses = cn(displayClasses, "text-amber-400", className);
+    dateString = "Due tomorrow";
+  } else if (daysUntilDue <= 3) {
+    // Due soon (within 3 days)
+    displayClasses = cn(displayClasses, "text-amber-300", className);
+    dateString = `Due in ${daysUntilDue} days`;
+  } else if (daysUntilDue <= 7) {
+    // Due this week
+    displayClasses = cn(displayClasses, "text-emerald-400", className);
+    dateString = `Due in ${daysUntilDue} days`;
+  } else {
+    // Due in more than a week
+    displayClasses = cn(displayClasses, "text-muted-foreground", className);
+    dateString = format(dueDate, 'MMM d, yyyy');
   }
 
   return (
-    <span className={className}>
+    <span className={displayClasses}>
+      {showIcon && icon}
       {dateString} {timeString && `at ${timeString}`}
     </span>
   );

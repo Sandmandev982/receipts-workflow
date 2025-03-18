@@ -9,76 +9,167 @@ export interface NotificationParams {
   teamId?: string;
   type?: 'task' | 'message' | 'team' | 'system';
   actionUrl?: string;
+  // Added fields for enhanced notification settings
+  priority?: 'low' | 'normal' | 'high';
+  sendEmail?: boolean;
+  emailAddress?: string;
 }
 
 export class NotificationService {
   static async createNotification(params: NotificationParams) {
-    const { userId, title, message, taskId, teamId, type = 'system', actionUrl } = params;
+    const { 
+      userId, 
+      title, 
+      message, 
+      taskId, 
+      teamId, 
+      type = 'system', 
+      actionUrl,
+      priority = 'normal',
+      sendEmail = false,
+      emailAddress
+    } = params;
 
-    const { data, error } = await supabase
-      .from('notifications')
-      .insert({
-        user_id: userId,
-        title,
-        message,
-        task_id: taskId,
-        team_id: teamId,
-        type,
-        action_url: actionUrl,
-        read: false
-      })
-      .select()
-      .single();
+    try {
+      // Create in-app notification
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          title,
+          message,
+          task_id: taskId,
+          team_id: teamId,
+          type,
+          action_url: actionUrl,
+          read: false,
+          priority
+        })
+        .select()
+        .single();
 
-    if (error) {
+      if (error) throw error;
+      
+      // If email notification is requested, send it using Supabase edge function
+      if (sendEmail && emailAddress) {
+        try {
+          await supabase.functions.invoke('send-notification-email', {
+            body: JSON.stringify({
+              email: emailAddress,
+              subject: title,
+              message: message,
+              taskId,
+              actionUrl
+            }),
+          });
+        } catch (emailError) {
+          console.error('Error sending email notification:', emailError);
+          // Continue with the function - don't throw, as the in-app notification succeeded
+        }
+      }
+      
+      return data;
+    } catch (error) {
       console.error('Error creating notification:', error);
       return null;
     }
-    
-    return data;
   }
 
-  static async fetchNotifications(userId: string) {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+  static async fetchNotifications(userId: string, options?: { 
+    limit?: number, 
+    unreadOnly?: boolean,
+    type?: 'task' | 'message' | 'team' | 'system' 
+  }) {
+    try {
+      let query = supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
+      // Apply filters based on options
+      if (options?.unreadOnly) {
+        query = query.eq('read', false);
+      }
+      
+      if (options?.type) {
+        query = query.eq('type', options.type);
+      }
+      
+      if (options?.limit) {
+        query = query.limit(options.limit);
+      }
+      
+      const { data, error } = await query;
 
-    if (error) {
+      if (error) throw error;
+      
+      return data;
+    } catch (error) {
       console.error('Error fetching notifications:', error);
       return [];
     }
-    
-    return data;
   }
 
   static async markAsRead(notificationId: string) {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('id', notificationId);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId);
 
-    return !error;
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      return false;
+    }
   }
 
   static async markAllAsRead(userId: string) {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('user_id', userId)
-      .eq('read', false);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', userId)
+        .eq('read', false);
 
-    return !error;
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      return false;
+    }
   }
 
   static async deleteNotification(notificationId: string) {
-    const { error } = await supabase
-      .from('notifications')
-      .delete()
-      .eq('id', notificationId);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
 
-    return !error;
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      return false;
+    }
+  }
+
+  static async clearAllNotifications(userId: string) {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error clearing all notifications:', error);
+      return false;
+    }
   }
 
   // Task notification helpers
@@ -89,7 +180,8 @@ export class NotificationService {
       message: `You have been assigned a new task: ${taskTitle}`,
       taskId,
       type: 'task',
-      actionUrl: `/tasks?id=${taskId}`
+      actionUrl: `/tasks?id=${taskId}`,
+      priority: 'high'
     });
   }
 
@@ -118,14 +210,31 @@ export class NotificationService {
     return true;
   }
 
-  static async notifyTaskDueSoon(taskId: string, userId: string, taskTitle: string, dueDate: string) {
+  static async notifyTaskDueSoon(taskId: string, userId: string, taskTitle: string, dueDate: string, emailNotification?: boolean, emailAddress?: string) {
     return this.createNotification({
       userId,
       title: 'Task Due Soon',
       message: `Your task "${taskTitle}" is due on ${dueDate}`,
       taskId,
       type: 'task',
-      actionUrl: `/tasks?id=${taskId}`
+      actionUrl: `/tasks?id=${taskId}`,
+      priority: 'high',
+      sendEmail: emailNotification,
+      emailAddress
+    });
+  }
+
+  static async notifyTaskOverdue(taskId: string, userId: string, taskTitle: string, dueDate: string, emailNotification?: boolean, emailAddress?: string) {
+    return this.createNotification({
+      userId,
+      title: 'Task Overdue',
+      message: `Your task "${taskTitle}" was due on ${dueDate} and is now overdue`,
+      taskId,
+      type: 'task',
+      actionUrl: `/tasks?id=${taskId}`,
+      priority: 'high',
+      sendEmail: emailNotification,
+      emailAddress
     });
   }
 
@@ -147,7 +256,8 @@ export class NotificationService {
       message: `${invitedByName} has invited you to join the team "${teamName}"`,
       teamId,
       type: 'team',
-      actionUrl: `/teams?id=${teamId}`
+      actionUrl: `/teams?id=${teamId}`,
+      priority: 'high'
     });
   }
 }
