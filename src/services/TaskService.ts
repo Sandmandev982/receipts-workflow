@@ -31,8 +31,23 @@ export class TaskService {
         progress: task.progress || 0,
         tags: task.tags || [],
         created_at: task.created_at,
+        updated_at: task.updated_at,
         completed_at: task.completed_at,
-        teamId: task.team_id
+        teamId: task.team_id,
+        specific: task.specific,
+        measurable: task.measurable,
+        achievable: task.achievable,
+        relevant: task.relevant,
+        time_bound: task.time_bound,
+        start_date: task.start_date ? new Date(task.start_date) : undefined,
+        has_subtasks: task.has_subtasks,
+        has_reverse_plan: task.has_reverse_plan,
+        expected_outcome: task.expected_outcome,
+        metrics: task.metrics,
+        resources_needed: task.resources_needed,
+        obstacles: task.obstacles,
+        dependencies: task.dependencies,
+        assignedTo: task.assigned_to
       }));
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -101,7 +116,21 @@ export class TaskService {
           progress: task.progress || 0,
           tags: task.tags || [],
           user_id: userId,
-          team_id: task.teamId
+          team_id: task.teamId,
+          specific: task.specific,
+          measurable: task.measurable,
+          achievable: task.achievable,
+          relevant: task.relevant,
+          time_bound: task.time_bound,
+          start_date: task.start_date ? task.start_date.toISOString().split('T')[0] : null,
+          has_subtasks: task.has_subtasks,
+          has_reverse_plan: task.has_reverse_plan,
+          expected_outcome: task.expected_outcome,
+          metrics: task.metrics,
+          resources_needed: task.resources_needed,
+          obstacles: task.obstacles,
+          dependencies: task.dependencies,
+          assigned_to: typeof task.assignedTo === 'object' ? task.assignedTo.id : task.assignedTo
         })
         .select()
         .single();
@@ -178,8 +207,23 @@ export class TaskService {
         progress: data.progress || 0,
         tags: data.tags || [],
         created_at: data.created_at,
+        updated_at: data.updated_at,
         completed_at: data.completed_at,
-        teamId: data.team_id
+        teamId: data.team_id,
+        specific: data.specific,
+        measurable: data.measurable,
+        achievable: data.achievable,
+        relevant: data.relevant,
+        time_bound: data.time_bound,
+        start_date: data.start_date ? new Date(data.start_date) : undefined,
+        has_subtasks: data.has_subtasks,
+        has_reverse_plan: data.has_reverse_plan,
+        expected_outcome: data.expected_outcome,
+        metrics: data.metrics,
+        resources_needed: data.resources_needed,
+        obstacles: data.obstacles,
+        dependencies: data.dependencies,
+        assignedTo: data.assigned_to
       };
     } catch (error) {
       console.error('Error adding task:', error);
@@ -202,7 +246,21 @@ export class TaskService {
           reminder_time: task.reminderTime,
           progress: task.progress,
           tags: task.tags,
-          team_id: task.teamId
+          team_id: task.teamId,
+          specific: task.specific,
+          measurable: task.measurable,
+          achievable: task.achievable,
+          relevant: task.relevant,
+          time_bound: task.time_bound,
+          start_date: task.start_date ? task.start_date.toISOString().split('T')[0] : null,
+          has_subtasks: task.has_subtasks,
+          has_reverse_plan: task.has_reverse_plan,
+          expected_outcome: task.expected_outcome,
+          metrics: task.metrics,
+          resources_needed: task.resources_needed,
+          obstacles: task.obstacles,
+          dependencies: task.dependencies,
+          assigned_to: typeof task.assignedTo === 'object' ? task.assignedTo.id : task.assignedTo
         })
         .eq('id', task.id);
       

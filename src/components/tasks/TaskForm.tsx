@@ -40,9 +40,9 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const { user } = useAuth();
   
   // Extract assignedTo ID if it's an object
-  const assignedToId = task?.assignedTo && typeof task.assignedTo === 'object' 
-    ? task.assignedTo.id 
-    : task?.assignedTo as string | undefined;
+  const assignedToId = task?.assignedTo 
+    ? (typeof task.assignedTo === 'object' ? task.assignedTo.id : task.assignedTo) 
+    : undefined;
   
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),

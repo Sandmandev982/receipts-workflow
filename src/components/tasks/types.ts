@@ -15,7 +15,7 @@ export interface Task {
   progress: number;
   tags?: string[];
   teamId?: string;
-  assignedTo?: {
+  assignedTo?: string | {
     id: string;
     name: string;
     initials?: string;

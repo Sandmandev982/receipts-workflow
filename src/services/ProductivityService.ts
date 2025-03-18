@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Subtask, Milestone, DailyOutcome, WeeklyOutcome, TimerSession, Task } from '@/components/tasks/types';
 import { format } from 'date-fns';
@@ -316,6 +315,7 @@ export class ProductivityService {
       
       return {
         id: data.id,
+        user_id: data.user_id,
         date: new Date(data.date),
         prev_day_tasks: jsonToTasks(data.prev_day_tasks),
         today_focus: data.today_focus || [],
@@ -336,7 +336,7 @@ export class ProductivityService {
       const formattedDate = formatDateForSupabase(outcome.date);
       
       // Convert Task[] to JSON compatible format
-      const prevDayTasksJson = tasksToJson(outcome.prev_day_tasks);
+      const prevDayTasksJson = tasksToJson(outcome.prev_day_tasks || []);
       
       // Check if a record already exists for this date
       const { data: existingData, error: checkError } = await supabase
@@ -389,6 +389,7 @@ export class ProductivityService {
       
       return {
         id: result.id,
+        user_id: result.user_id,
         date: new Date(result.date),
         prev_day_tasks: jsonToTasks(result.prev_day_tasks),
         today_focus: result.today_focus || [],
@@ -421,6 +422,7 @@ export class ProductivityService {
       
       return {
         id: data.id,
+        user_id: data.user_id,
         week_start_date: new Date(data.week_start_date),
         work_goals: data.work_goals || [],
         work_steps: data.work_steps || [],
@@ -497,6 +499,7 @@ export class ProductivityService {
       
       return {
         id: result.id,
+        user_id: result.user_id,
         week_start_date: new Date(result.week_start_date),
         work_goals: result.work_goals || [],
         work_steps: result.work_steps || [],
@@ -533,6 +536,7 @@ export class ProductivityService {
       
       return {
         id: data.id,
+        user_id: data.user_id,
         task_id: data.task_id,
         start_time: new Date(data.start_time),
         completed: data.completed,
@@ -580,6 +584,7 @@ export class ProductivityService {
       
       return data.map(session => ({
         id: session.id,
+        user_id: session.user_id,
         task_id: session.task_id,
         start_time: new Date(session.start_time),
         end_time: session.end_time ? new Date(session.end_time) : undefined,

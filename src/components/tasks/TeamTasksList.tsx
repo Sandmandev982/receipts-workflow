@@ -51,7 +51,7 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
       const taskIds = teamTasksData.map(item => item.task_id);
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
-        .select('*')
+        .select('*, assigned_to')
         .in('id', taskIds);
 
       if (tasksError) throw tasksError;
@@ -73,6 +73,19 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
           created_at: task.created_at,
           updated_at: task.updated_at,
           completed_at: task.completed_at,
+          specific: task.specific,
+          measurable: task.measurable,
+          achievable: task.achievable,
+          relevant: task.relevant,
+          time_bound: task.time_bound,
+          start_date: task.start_date ? new Date(task.start_date) : undefined,
+          has_subtasks: task.has_subtasks,
+          has_reverse_plan: task.has_reverse_plan,
+          expected_outcome: task.expected_outcome,
+          metrics: task.metrics,
+          resources_needed: task.resources_needed,
+          obstacles: task.obstacles,
+          dependencies: task.dependencies,
           assignedTo: task.assigned_to ? {
             id: task.assigned_to,
             name: 'Loading...',
@@ -157,7 +170,20 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
           tags: taskData.tags,
           user_id: user.id,
           team_id: teamId,
-          assigned_to: assignedToUserId
+          assigned_to: assignedToUserId,
+          specific: taskData.specific,
+          measurable: taskData.measurable,
+          achievable: taskData.achievable,
+          relevant: taskData.relevant,
+          time_bound: taskData.time_bound,
+          start_date: taskData.start_date ? taskData.start_date.toISOString().split('T')[0] : null,
+          has_subtasks: taskData.has_subtasks,
+          has_reverse_plan: taskData.has_reverse_plan,
+          expected_outcome: taskData.expected_outcome,
+          metrics: taskData.metrics,
+          resources_needed: taskData.resources_needed,
+          obstacles: taskData.obstacles,
+          dependencies: taskData.dependencies
         })
         .select()
         .single();

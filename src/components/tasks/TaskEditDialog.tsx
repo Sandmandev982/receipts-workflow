@@ -101,7 +101,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
         name: assignedTeamMember.name,
         initials: assignedTeamMember.initials,
         avatar: assignedTeamMember.avatar
-      } : undefined,
+      } : data.assignedTo || undefined,
       teamId: data.teamId || undefined,
       // SMART task fields
       specific: data.specific,
