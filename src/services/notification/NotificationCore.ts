@@ -1,7 +1,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-// Define the NotificationParams interface here to avoid circular imports
+// Define the NotificationParams interface directly here
+// This avoids circular imports with other modules
 export interface NotificationParams {
   userId: string;
   title: string;
@@ -79,7 +80,6 @@ export class NotificationCore {
           });
         } catch (emailError) {
           console.error('Error sending email notification:', emailError);
-          // Continue with the function - don't throw, as the in-app notification succeeded
         }
       }
       

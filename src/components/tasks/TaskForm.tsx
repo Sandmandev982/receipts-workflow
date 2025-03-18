@@ -89,7 +89,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const handleSubmit = (data: TaskFormValues) => {
     onSubmit(data);
     if (onTaskCreated && !task) {
-      // Fix the task creation by properly handling the tags
+      // Process tags from comma-separated string to array
       const newTask = {
         id: 'temp-id', // Will be replaced by the actual ID from the backend
         ...data,
@@ -100,7 +100,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
         reminderSet: data.reminderEnabled,
         reminderTime: data.reminderTime,
         // Convert comma-separated string to array
-        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined
+        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()).filter(Boolean) : []
       } as Task;
       
       onTaskCreated(newTask);
