@@ -5,13 +5,26 @@ import CalendarView from '@/components/calendar/CalendarView';
 import CalendarIntegration from '@/components/calendar/CalendarIntegration';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCalendarIntegration } from '@/hooks/useCalendarIntegration';
+import { useAuth } from '@/hooks/useAuth';
 
 const Calendar = () => {
   const { checkConnection } = useCalendarIntegration();
+  const { user } = useAuth();
   
   useEffect(() => {
     checkConnection();
   }, []);
+
+  if (!user) {
+    return (
+      <Layout>
+        <div className="container mx-auto py-6">
+          <h1 className="text-3xl font-bold mb-6">Calendar</h1>
+          <p>Please log in to view your calendar.</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -25,11 +38,11 @@ const Calendar = () => {
           </TabsList>
           
           <TabsContent value="view">
-            <CalendarView />
+            <CalendarView userId={user.id} />
           </TabsContent>
           
           <TabsContent value="integration">
-            <CalendarIntegration />
+            <CalendarIntegration userId={user.id} />
           </TabsContent>
         </Tabs>
       </div>

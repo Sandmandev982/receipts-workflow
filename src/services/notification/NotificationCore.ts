@@ -66,14 +66,16 @@ export class NotificationCore {
       if (sendEmail && emailAddress) {
         try {
           // Use a simplified approach to avoid type errors
+          const emailParams = {
+            email: emailAddress,
+            subject: title,
+            message: message,
+            taskId,
+            actionUrl
+          };
+          
           await supabase.functions.invoke('send-notification-email', {
-            body: {
-              email: emailAddress,
-              subject: title,
-              message: message,
-              taskId,
-              actionUrl
-            },
+            body: emailParams,
           });
         } catch (emailError) {
           console.error('Error sending email notification:', emailError);

@@ -60,7 +60,7 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId, teamName }) => {
     }
   };
 
-  const handleTaskDeleted = (taskId: string) => {
+  const handleTaskDelete = (taskId: string) => {
     setTasks(prev => prev.filter(task => task.id !== taskId));
     toast({
       title: 'Task Deleted',
@@ -135,8 +135,8 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId, teamName }) => {
                   <DialogTitle>Create Team Task</DialogTitle>
                 </DialogHeader>
                 <TaskForm 
-                  onTaskCreated={handleTaskCreated}
-                  defaultValues={{ teamId }}
+                  onSubmit={handleTaskCreated}
+                  defaultValues={{ teamId: teamId }}
                 />
               </DialogContent>
             </Dialog>
@@ -148,7 +148,7 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId, teamName }) => {
           onValueChange={setCurrentTab} 
           className="mt-4"
         >
-          <TabsList className="grid grid-cols-5">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="pending">Pending</TabsTrigger>
             <TabsTrigger value="in-progress">In Progress</TabsTrigger>
@@ -192,7 +192,7 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId, teamName }) => {
                 key={task.id} 
                 task={task} 
                 onStatusChange={handleTaskStatusChange(task.id)}
-                onDeleted={() => handleTaskDeleted(task.id)}
+                onDelete={() => handleTaskDelete(task.id)}
                 onAssignToUser={(userId) => handleAssignTask(task.id, userId)}
                 showTeamActions
                 teamId={teamId}

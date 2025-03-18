@@ -27,13 +27,17 @@ interface TeamOption {
 interface TaskFormProps {
   task?: Task;
   onSubmit: (data: TaskFormValues) => void;
+  onTaskCreated?: (task: Task) => void;
+  defaultValues?: Partial<TaskFormValues>;
   teamMembers?: Array<{ id: string; name: string; initials?: string; avatar?: string }>;
   teams?: TeamOption[];
 }
 
 const TaskForm: React.FC<TaskFormProps> = ({ 
-  task, 
-  onSubmit, 
+  task,
+  onSubmit,
+  onTaskCreated,
+  defaultValues = {}, 
   teamMembers = [], 
   teams = [] 
 }) => {
@@ -44,76 +48,67 @@ const TaskForm: React.FC<TaskFormProps> = ({
     ? (typeof task.assignedTo === 'object' ? task.assignedTo.id : task.assignedTo) 
     : undefined;
   
+  const formDefaultValues = {
+    title: task?.title || '',
+    description: task?.description || '',
+    priority: task?.priority || 'medium',
+    status: task?.status || 'pending',
+    dueDate: task?.dueDate || new Date(),
+    dueTime: task?.dueTime || '',
+    reminderEnabled: task?.reminderSet || false,
+    reminderTime: task?.reminderTime || '1 hour before',
+    emailNotification: task?.emailNotification || false,
+    notificationEmail: task?.notificationEmail || user?.email || '',
+    progress: task?.progress || 0,
+    tags: task?.tags ? task.tags.join(', ') : '',
+    assignedTo: assignedToId || '',
+    teamId: task?.teamId || defaultValues.teamId || '',
+    // SMART task fields
+    specific: task?.specific || defaultValues.specific || '',
+    measurable: task?.measurable || defaultValues.measurable || '',
+    achievable: task?.achievable !== undefined ? task.achievable : true,
+    relevant: task?.relevant || defaultValues.relevant || '',
+    time_bound: task?.time_bound !== undefined ? task.time_bound : true,
+    // Additional fields
+    start_date: task?.start_date || defaultValues.start_date,
+    has_subtasks: task?.has_subtasks || defaultValues.has_subtasks || false,
+    has_reverse_plan: task?.has_reverse_plan || defaultValues.has_reverse_plan || false,
+    // New SMART fields
+    expected_outcome: task?.expected_outcome || defaultValues.expected_outcome || '',
+    metrics: task?.metrics || defaultValues.metrics || '',
+    resources_needed: task?.resources_needed || defaultValues.resources_needed || '',
+    obstacles: task?.obstacles || defaultValues.obstacles || '',
+    dependencies: task?.dependencies || defaultValues.dependencies || ''
+  };
+  
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
-    defaultValues: task ? {
-      title: task.title,
-      description: task.description,
-      priority: task.priority,
-      status: task.status,
-      dueDate: task.dueDate || new Date(),
-      dueTime: task.dueTime || '',
-      reminderEnabled: task.reminderSet || false,
-      reminderTime: task.reminderTime || '1 hour before',
-      emailNotification: task.emailNotification || false,
-      notificationEmail: task.notificationEmail || user?.email || '',
-      progress: task.progress || 0,
-      tags: task.tags ? task.tags.join(', ') : '',
-      assignedTo: assignedToId || '',
-      teamId: task.teamId || '',
-      // SMART task fields
-      specific: task.specific || '',
-      measurable: task.measurable || '',
-      achievable: task.achievable !== undefined ? task.achievable : true,
-      relevant: task.relevant || '',
-      time_bound: task.time_bound !== undefined ? task.time_bound : true,
-      // Additional fields
-      start_date: task.start_date || undefined,
-      has_subtasks: task.has_subtasks || false,
-      has_reverse_plan: task.has_reverse_plan || false,
-      // New SMART fields
-      expected_outcome: task.expected_outcome || '',
-      metrics: task.metrics || '',
-      resources_needed: task.resources_needed || '',
-      obstacles: task.obstacles || '',
-      dependencies: task.dependencies || ''
-    } : {
-      title: '',
-      description: '',
-      priority: 'medium',
-      status: 'pending',
-      dueDate: new Date(),
-      dueTime: '',
-      reminderEnabled: false,
-      reminderTime: '1 hour before',
-      emailNotification: false,
-      notificationEmail: user?.email || '',
-      progress: 0,
-      tags: '',
-      assignedTo: '',
-      teamId: '',
-      // SMART task fields
-      specific: '',
-      measurable: '',
-      achievable: true,
-      relevant: '',
-      time_bound: true,
-      // Additional fields
-      start_date: undefined,
-      has_subtasks: false,
-      has_reverse_plan: false,
-      // New SMART fields
-      expected_outcome: '',
-      metrics: '',
-      resources_needed: '',
-      obstacles: '',
-      dependencies: ''
-    },
+    defaultValues: formDefaultValues,
   });
+
+  const handleSubmit = (data: TaskFormValues) => {
+    onSubmit(data);
+    if (onTaskCreated && !task) {
+      // This is a bit of a workaround, but it allows us to simulate the task creation
+      // while maintaining type safety - only used when onTaskCreated is provided
+      const newTask = {
+        id: 'temp-id', // Will be replaced by the actual ID from the backend
+        ...data,
+        dueDate: data.dueDate,
+        status: data.status,
+        priority: data.priority,
+        progress: data.progress,
+        reminderSet: data.reminderEnabled,
+        reminderTime: data.reminderTime
+      } as Task;
+      
+      onTaskCreated(newTask);
+    }
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <Tabs defaultValue="basic" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>

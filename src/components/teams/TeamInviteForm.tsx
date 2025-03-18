@@ -12,8 +12,41 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { TeamService } from '@/services/TeamService';
 import { useToast } from '@/hooks/use-toast';
-// Import the service directly to avoid circular dependency
-import { NotificationCore } from '@/services/notification/NotificationCore';
+
+interface NotificationToCreate {
+  userId: string;
+  title: string;
+  message: string;
+  type?: 'task' | 'message' | 'team' | 'system';
+  teamId?: string;
+  actionUrl?: string;
+}
+
+// Function to create notification without causing circular dependencies
+async function createNotification(params: NotificationToCreate) {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: params.userId,
+        title: params.title,
+        message: params.message,
+        team_id: params.teamId,
+        type: params.type || 'system',
+        action_url: params.actionUrl,
+        read: false,
+        priority: 'normal'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    return null;
+  }
+}
 
 const inviteFormSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' })
@@ -78,8 +111,8 @@ const TeamInviteForm: React.FC<TeamInviteFormProps> = ({ teamId, teamName, onInv
       const success = await TeamService.addTeamMember(teamId, userData.id);
       
       if (success) {
-        // Send notification directly using NotificationCore to avoid circular dependency
-        await NotificationCore.createNotification({
+        // Create notification directly without using NotificationCore to avoid circular dependency
+        await createNotification({
           userId: userData.id,
           title: 'Team Invitation',
           message: `${inviterName} has invited you to join ${teamName}`,
