@@ -89,8 +89,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const handleSubmit = (data: TaskFormValues) => {
     onSubmit(data);
     if (onTaskCreated && !task) {
-      // This is a bit of a workaround, but it allows us to simulate the task creation
-      // while maintaining type safety - only used when onTaskCreated is provided
+      // Fix the task creation by properly handling the tags
       const newTask = {
         id: 'temp-id', // Will be replaced by the actual ID from the backend
         ...data,
@@ -99,7 +98,9 @@ const TaskForm: React.FC<TaskFormProps> = ({
         priority: data.priority,
         progress: data.progress,
         reminderSet: data.reminderEnabled,
-        reminderTime: data.reminderTime
+        reminderTime: data.reminderTime,
+        // Convert comma-separated string to array
+        tags: data.tags ? data.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined
       } as Task;
       
       onTaskCreated(newTask);

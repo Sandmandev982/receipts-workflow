@@ -15,9 +15,20 @@ interface TaskCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onStatusChange: (newStatus: Task['status']) => void;
+  onAssignToUser?: (userId: string) => void;
+  showTeamActions?: boolean;
+  teamId?: string;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusChange }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ 
+  task, 
+  onEdit, 
+  onDelete, 
+  onStatusChange, 
+  onAssignToUser,
+  showTeamActions = false,
+  teamId 
+}) => {
   const handleDelete = () => {
     onDelete();
   };

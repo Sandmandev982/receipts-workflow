@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Task, TaskStatus } from '@/components/tasks/types';
+import { Task, TaskStatus, TaskFormValues } from '@/components/tasks/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Filter, Calendar } from 'lucide-react';
@@ -40,12 +40,28 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId, teamName }) => {
     setLoading(false);
   };
 
-  const handleTaskCreated = (task: Task) => {
-    setTasks(prev => [task, ...prev]);
-    setCreateTaskOpen(false);
-    toast({
-      title: 'Task Created',
-      description: `"${task.title}" has been added to ${teamName} tasks.`
+  // Create a handler that properly converts TaskFormValues to Task
+  const handleTaskSubmit = (formData: TaskFormValues) => {
+    if (!user) return;
+    
+    // Add the team ID to the task
+    const taskToCreate = {
+      ...formData,
+      teamId,
+      user_id: user.id,
+      // Convert tags from string to array if needed
+      tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined
+    };
+    
+    TaskService.addTask(taskToCreate, user.id).then(newTask => {
+      if (newTask) {
+        setTasks(prev => [newTask, ...prev]);
+        setCreateTaskOpen(false);
+        toast({
+          title: 'Task Created',
+          description: `"${newTask.title}" has been added to ${teamName} tasks.`
+        });
+      }
     });
   };
 
@@ -135,7 +151,7 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId, teamName }) => {
                   <DialogTitle>Create Team Task</DialogTitle>
                 </DialogHeader>
                 <TaskForm 
-                  onSubmit={handleTaskCreated}
+                  onSubmit={handleTaskSubmit}
                   defaultValues={{ teamId: teamId }}
                 />
               </DialogContent>
@@ -193,9 +209,7 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId, teamName }) => {
                 task={task} 
                 onStatusChange={handleTaskStatusChange(task.id)}
                 onDelete={() => handleTaskDelete(task.id)}
-                onAssignToUser={(userId) => handleAssignTask(task.id, userId)}
-                showTeamActions
-                teamId={teamId}
+                onEdit={() => {/* Handle edit */}}
               />
             ))}
           </div>
