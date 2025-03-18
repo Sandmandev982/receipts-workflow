@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      calendar_integrations: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          provider: string
+          refresh_token: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          provider: string
+          refresh_token?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          provider?: string
+          refresh_token?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_outcomes: {
         Row: {
           accomplishments: string[] | null
@@ -235,6 +268,7 @@ export type Database = {
         Row: {
           achievable: boolean | null
           assigned_to: string | null
+          calendar_event_id: string | null
           completed_at: string | null
           created_at: string
           dependencies: string | null
@@ -267,6 +301,7 @@ export type Database = {
         Insert: {
           achievable?: boolean | null
           assigned_to?: string | null
+          calendar_event_id?: string | null
           completed_at?: string | null
           created_at?: string
           dependencies?: string | null
@@ -299,6 +334,7 @@ export type Database = {
         Update: {
           achievable?: boolean | null
           assigned_to?: string | null
+          calendar_event_id?: string | null
           completed_at?: string | null
           created_at?: string
           dependencies?: string | null
@@ -527,7 +563,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_calendar_connection: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
