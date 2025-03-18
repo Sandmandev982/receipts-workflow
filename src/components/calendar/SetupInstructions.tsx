@@ -1,85 +1,65 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Steps, StepItem } from '@/components/ui/steps';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 
-const GoogleCalendarSetupInstructions = () => {
+const CONSOLE_URL = 'https://console.cloud.google.com/apis/credentials';
+
+const SetupInstructions = () => {
   return (
-    <Card>
+    <Card className="w-full max-w-3xl mx-auto mt-8">
       <CardHeader>
-        <CardTitle>Setup Google Calendar Integration</CardTitle>
-        <CardDescription>
-          Follow these steps to set up Google Calendar integration for your Receipts app.
-        </CardDescription>
+        <CardTitle>Google Calendar Integration Setup</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Alert>
-          <AlertTitle>Important</AlertTitle>
-          <AlertDescription>
-            You'll need to set up a Google Cloud project to enable the Calendar API and create credentials.
-          </AlertDescription>
-        </Alert>
-        
+      <CardContent>
         <Steps>
-          <StepItem title="Create a Google Cloud project">
-            <p className="text-sm text-muted-foreground mb-2">
-              Go to the <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                Google Cloud Console <ExternalLink className="inline h-3 w-3" />
-              </a> and create a new project.
+          <StepItem title="Create a Google Cloud Project">
+            <p>
+              To integrate with Google Calendar, you'll need to create a project in the Google Cloud Console
+              and set up OAuth credentials.
             </p>
+            <a
+              href={CONSOLE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary inline-flex items-center mt-2 hover:underline"
+            >
+              Go to Google Cloud Console
+              <ExternalLink className="ml-1 h-3 w-3" />
+            </a>
           </StepItem>
           
-          <StepItem title="Enable the Google Calendar API">
-            <p className="text-sm text-muted-foreground mb-2">
-              In your project, go to "APIs & Services" > "Library" and search for "Google Calendar API". 
-              Click on it and press "Enable".
+          <StepItem title="Configure OAuth Consent Screen">
+            <p>
+              Set up the OAuth consent screen with the following scopes:
             </p>
+            <ul className="list-disc ml-6 mt-2 space-y-1">
+              <li>{'https://www.googleapis.com/auth/calendar'}</li>
+              <li>{'https://www.googleapis.com/auth/calendar.events'}</li>
+            </ul>
           </StepItem>
           
-          <StepItem title="Configure OAuth consent screen">
-            <p className="text-sm text-muted-foreground mb-2">
-              Go to "APIs & Services" > "OAuth consent screen". Choose "External" and fill in the required information:
-              <ul className="list-disc pl-5 mt-1 space-y-1">
-                <li>App name: "Receipts"</li>
-                <li>User support email: Your email</li>
-                <li>Developer contact information: Your email</li>
-              </ul>
+          <StepItem title="Create OAuth 2.0 Credentials">
+            <p>
+              Create OAuth 2.0 credentials and add the following redirect URI:
             </p>
-            <p className="text-sm text-muted-foreground mb-2">
-              Add the following scopes:
-              <ul className="list-disc pl-5 mt-1 space-y-1">
-                <li>./auth/calendar</li>
-                <li>./auth/calendar.events</li>
-              </ul>
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Add any test users for development.
-            </p>
+            <code className="px-2 py-1 bg-muted rounded text-sm mt-2 block">
+              {window.location.origin + '/calendar/oauth-callback'}
+            </code>
           </StepItem>
           
-          <StepItem title="Create OAuth credentials">
-            <p className="text-sm text-muted-foreground mb-2">
-              Go to "APIs & Services" > "Credentials" and click "Create Credentials" > "OAuth client ID".
-              Choose "Web application" as the application type.
-              Add these authorized redirect URIs:
-              <ul className="list-disc pl-5 mt-1 space-y-1">
-                <li>http://localhost:5173/calendar?connection=success</li>
-                <li>https://[your-production-domain.com]/calendar?connection=success</li>
-              </ul>
+          <StepItem title="Configure Application">
+            <p>
+              After creating your credentials, copy the Client ID and Client Secret to enable the integration.
             </p>
-          </StepItem>
-          
-          <StepItem title="Add credentials to Supabase">
-            <p className="text-sm text-muted-foreground">
-              Add your Client ID and Client Secret to the Supabase Edge Function secrets:
-              <ul className="list-disc pl-5 mt-1 space-y-1">
-                <li>GOOGLE_CLIENT_ID: Your OAuth client ID</li>
-                <li>GOOGLE_CLIENT_SECRET: Your OAuth client secret</li>
-                <li>GOOGLE_REDIRECT_URI: http://localhost:5173/calendar?connection=success (or your production URL)</li>
-              </ul>
-            </p>
+            <Link 
+              to="/settings/integrations" 
+              className="text-primary inline-flex items-center mt-2 hover:underline"
+            >
+              Go to Integration Settings
+            </Link>
           </StepItem>
         </Steps>
       </CardContent>
@@ -87,4 +67,4 @@ const GoogleCalendarSetupInstructions = () => {
   );
 };
 
-export default GoogleCalendarSetupInstructions;
+export default SetupInstructions;

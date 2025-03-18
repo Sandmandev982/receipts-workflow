@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { NotificationService } from '@/services/NotificationService';
 
 export interface Notification {
   id: string;
@@ -30,18 +31,13 @@ export const useNotifications = () => {
 
     const fetchNotifications = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching notifications:', error);
-      } else {
-        setNotifications(data || []);
-        setUnreadCount(data?.filter(n => !n.read).length || 0);
+      const data = await NotificationService.fetchNotifications(user.id);
+      
+      if (data) {
+        setNotifications(data);
+        setUnreadCount(data.filter(n => !n.read).length);
       }
+      
       setLoading(false);
     };
 
@@ -81,15 +77,9 @@ export const useNotifications = () => {
   const markAsRead = async (id: string) => {
     if (!user) return;
 
-    const { error } = await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('id', id)
-      .eq('user_id', user.id);
-
-    if (error) {
-      console.error('Error marking notification as read:', error);
-    } else {
+    const success = await NotificationService.markAsRead(id);
+    
+    if (success) {
       setNotifications(prev => 
         prev.map(n => (n.id === id ? { ...n, read: true } : n))
       );
@@ -101,15 +91,9 @@ export const useNotifications = () => {
   const markAllAsRead = async () => {
     if (!user) return;
 
-    const { error } = await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('user_id', user.id)
-      .eq('read', false);
-
-    if (error) {
-      console.error('Error marking all notifications as read:', error);
-    } else {
+    const success = await NotificationService.markAllAsRead(user.id);
+    
+    if (success) {
       setNotifications(prev => 
         prev.map(n => ({ ...n, read: true }))
       );
@@ -121,18 +105,12 @@ export const useNotifications = () => {
   const deleteNotification = async (id: string) => {
     if (!user) return;
 
-    const { error } = await supabase
-      .from('notifications')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id);
-
-    if (error) {
-      console.error('Error deleting notification:', error);
-    } else {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      // Update unread count if the deleted notification was unread
+    const success = await NotificationService.deleteNotification(id);
+    
+    if (success) {
       const wasUnread = notifications.find(n => n.id === id && !n.read);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      
       if (wasUnread) {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }

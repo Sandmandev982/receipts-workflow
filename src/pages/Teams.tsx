@@ -11,16 +11,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Users, UserPlus, UserCheck, UserX, PenSquare, Trash2 } from 'lucide-react';
+import { Plus, Users, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import TeamTasksList from '@/components/tasks/TeamTasksList';
-import { createTeam, getTeams, getTeamMembers, TeamMember } from '@/lib/api';
+import TeamMembersList from '@/components/teams/TeamMembersList';
+import TeamInviteForm from '@/components/teams/TeamInviteForm';
+import { TeamService } from '@/services/TeamService';
 
 const teamFormSchema = z.object({
   name: z.string().min(2, {
@@ -35,8 +33,9 @@ const Teams = () => {
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<any | null>(null);
   const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
   const { user } = useAuth();
 
   const teamForm = useForm<TeamFormValues>({
@@ -48,73 +47,72 @@ const Teams = () => {
   });
 
   useEffect(() => {
-    const fetchTeamsData = async () => {
-      if (user) {
-        const teamsData = await getTeams(user.id);
-        setTeams(teamsData);
-      }
-    };
-
-    fetchTeamsData();
+    fetchTeams();
   }, [user]);
 
   useEffect(() => {
-    const fetchTeamMembersData = async () => {
-      if (selectedTeam) {
-        const members = await getTeamMembers(selectedTeam.id);
-        setTeamMembers(members);
-      }
-    };
-
-    fetchTeamMembersData();
+    if (selectedTeam) {
+      fetchTeamMembers();
+    }
   }, [selectedTeam]);
+
+  const fetchTeams = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const teamsData = await TeamService.fetchTeams(user.id);
+      setTeams(teamsData);
+      
+      // If there's at least one team and no team currently selected, select the first one
+      if (teamsData.length > 0 && !selectedTeam) {
+        setSelectedTeam(teamsData[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+      toast.error('Failed to load teams');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTeamMembers = async () => {
+    if (!user || !selectedTeam) return;
+    
+    try {
+      const members = await TeamService.getTeamMembers(selectedTeam.id);
+      setTeamMembers(members);
+      
+      // Check if current user is admin in this team
+      const currentUserRole = members.find(member => member.user_id === user.id)?.role;
+      setIsCurrentUserAdmin(currentUserRole === 'admin');
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      toast.error('Failed to load team members');
+    }
+  };
 
   const handleTeamCreate = async (values: TeamFormValues) => {
     if (!user) return;
 
     try {
-      await createTeam({
+      const newTeam = await TeamService.createTeam({
         name: values.name,
         description: values.description,
         created_by: user.id,
       });
 
-      const teamsData = await getTeams(user.id);
-      setTeams(teamsData);
-      toast.success("Team created successfully!");
+      if (newTeam) {
+        await fetchTeams();
+        setSelectedTeam(newTeam);
+        toast.success("Team created successfully!");
+        teamForm.reset();
+      }
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || 'Failed to create team');
     } finally {
       setIsTeamDialogOpen(false);
     }
-  };
-
-  const renderMemberList = (members: TeamMember[]) => {
-    return members.map((member) => (
-      <div key={member.id} className="flex items-center justify-between p-3 border-b last:border-0">
-        <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarImage src={member.profile?.avatar_url || undefined} />
-            <AvatarFallback>
-              {`${member.profile?.first_name?.charAt(0) || ''}${member.profile?.last_name?.charAt(0) || ''}`}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-medium">{`${member.profile?.first_name || ''} ${member.profile?.last_name || ''}`}</p>
-            <p className="text-sm text-muted-foreground">{member.role}</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
-            <PenSquare className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    ));
   };
 
   return (
@@ -187,7 +185,11 @@ const Teams = () => {
                 <CardDescription>Select a team to view details</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                {teams.length > 0 ? (
+                {loading ? (
+                  <div className="p-4 flex justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : teams.length > 0 ? (
                   <div className="divide-y divide-border">
                     {teams.map((team) => (
                       <button
@@ -220,50 +222,34 @@ const Teams = () => {
                   <TeamTasksList teamId={selectedTeam.id} />
                 </TabsContent>
                 <TabsContent value="members">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Team Members</CardTitle>
-                      <CardDescription>Manage team members and their roles</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      {teamMembers.length > 0 ? (
-                        renderMemberList(teamMembers)
-                      ) : (
-                        <div className="p-4 text-center text-muted-foreground">
-                          No members in this team yet. Invite someone to join!
-                        </div>
-                      )}
-                    </CardContent>
-                    <CardFooter>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button>
-                            <UserPlus className="w-4 h-4 mr-2" />
-                            Invite Member
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                          <DialogHeader>
-                            <DialogTitle>Invite Member</DialogTitle>
-                            <DialogDescription>
-                              Invite a new member to the team.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <Label htmlFor="email" className="text-right">
-                                Email
-                              </Label>
-                              <Input id="email" value="shadcn@example.com" className="col-span-3" />
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button type="submit">Invite</Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </CardFooter>
-                  </Card>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Team Members</CardTitle>
+                          <CardDescription>Manage team members and their roles</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <TeamMembersList 
+                            teamId={selectedTeam.id}
+                            members={teamMembers}
+                            isCurrentUserAdmin={isCurrentUserAdmin}
+                            onMemberUpdated={fetchTeamMembers}
+                          />
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    {isCurrentUserAdmin && (
+                      <div className="md:col-span-1">
+                        <TeamInviteForm 
+                          teamId={selectedTeam.id}
+                          teamName={selectedTeam.name}
+                          onInviteSuccess={fetchTeamMembers}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </TabsContent>
                 <TabsContent value="settings">
                   <Card>
@@ -272,7 +258,35 @@ const Teams = () => {
                       <CardDescription>Manage team settings</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <p>Settings content</p>
+                      {isCurrentUserAdmin ? (
+                        <div className="space-y-4">
+                          <div className="space-y-1">
+                            <h3 className="text-sm font-medium">Team Name</h3>
+                            <p className="text-sm text-muted-foreground">{selectedTeam.name}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <h3 className="text-sm font-medium">Description</h3>
+                            <p className="text-sm text-muted-foreground">{selectedTeam.description || 'No description provided'}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <h3 className="text-sm font-medium">Created</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(selectedTeam.created_at).toLocaleDateString()} at {' '}
+                              {new Date(selectedTeam.created_at).toLocaleTimeString()}
+                            </p>
+                          </div>
+                          <div className="pt-4">
+                            <Button variant="destructive">Delete Team</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <Badge variant="secondary">Member</Badge>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            Only team admins can modify team settings
+                          </p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
