@@ -26,6 +26,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
     onStatusChange(newStatus);
   };
 
+  // Check if assignedTo is an object with the necessary properties
+  const isAssignedToObject = (assigned: any): assigned is { id: string; name: string; initials?: string; avatar?: string } => {
+    return typeof assigned === 'object' && assigned !== null && 'id' in assigned;
+  };
+
   return (
     <Card className="bg-card text-card-foreground shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -66,13 +71,21 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusCha
         )}
         {task.assignedTo && (
           <div className="flex items-center mt-2">
-            <Avatar className="mr-2 h-5 w-5">
-              <AvatarImage src={task.assignedTo.avatar} />
-              <AvatarFallback>{task.assignedTo.initials}</AvatarFallback>
-            </Avatar>
-            <span className="text-xs text-muted-foreground">
-              {task.assignedTo.name}
-            </span>
+            {isAssignedToObject(task.assignedTo) ? (
+              <>
+                <Avatar className="mr-2 h-5 w-5">
+                  <AvatarImage src={task.assignedTo.avatar} />
+                  <AvatarFallback>{task.assignedTo.initials}</AvatarFallback>
+                </Avatar>
+                <span className="text-xs text-muted-foreground">
+                  {task.assignedTo.name}
+                </span>
+              </>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                Assigned to: {task.assignedTo}
+              </span>
+            )}
           </div>
         )}
       </CardContent>

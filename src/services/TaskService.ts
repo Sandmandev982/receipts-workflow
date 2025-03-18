@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Task, TaskStatus } from '@/components/tasks/types';
 import { format } from 'date-fns';
@@ -8,6 +7,17 @@ import { scheduleTaskReminder } from '@/lib/api';
 export class TaskService {
   static async fetchTasks(userId: string): Promise<Task[]> {
     try {
+      // Check if the tasks table has the assigned_to column
+      const { data: columnCheck, error: columnError } = await supabase
+        .from('tasks')
+        .select('assigned_to')
+        .limit(1);
+      
+      // If the column doesn't exist, log a warning but continue
+      if (columnError && columnError.message.includes("column 'assigned_to' does not exist")) {
+        console.warn('Warning: assigned_to column is missing from tasks table');
+      }
+
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
@@ -102,6 +112,27 @@ export class TaskService {
 
   static async addTask(task: Omit<Task, 'id'>, userId: string): Promise<Task | null> {
     try {
+      // Check if the tasks table has the assigned_to column
+      const { data: columnCheck, error: columnError } = await supabase
+        .from('tasks')
+        .select('assigned_to')
+        .limit(1);
+      
+      // If the column doesn't exist, log a warning but continue
+      if (columnError && columnError.message.includes("column 'assigned_to' does not exist")) {
+        console.warn('Warning: assigned_to column is missing from tasks table');
+      }
+
+      // Determine the assigned_to value
+      let assignedToValue = null;
+      if (task.assignedTo) {
+        if (typeof task.assignedTo === 'object' && 'id' in task.assignedTo) {
+          assignedToValue = task.assignedTo.id;
+        } else {
+          assignedToValue = task.assignedTo;
+        }
+      }
+
       const { data, error } = await supabase
         .from('tasks')
         .insert({
@@ -130,7 +161,7 @@ export class TaskService {
           resources_needed: task.resources_needed,
           obstacles: task.obstacles,
           dependencies: task.dependencies,
-          assigned_to: typeof task.assignedTo === 'object' ? task.assignedTo.id : task.assignedTo
+          assigned_to: assignedToValue
         })
         .select()
         .single();
@@ -233,6 +264,16 @@ export class TaskService {
 
   static async updateTask(task: Task): Promise<boolean> {
     try {
+      // Determine the assigned_to value
+      let assignedToValue = null;
+      if (task.assignedTo) {
+        if (typeof task.assignedTo === 'object' && 'id' in task.assignedTo) {
+          assignedToValue = task.assignedTo.id;
+        } else {
+          assignedToValue = task.assignedTo;
+        }
+      }
+
       const { error } = await supabase
         .from('tasks')
         .update({
@@ -260,7 +301,7 @@ export class TaskService {
           resources_needed: task.resources_needed,
           obstacles: task.obstacles,
           dependencies: task.dependencies,
-          assigned_to: typeof task.assignedTo === 'object' ? task.assignedTo.id : task.assignedTo
+          assigned_to: assignedToValue
         })
         .eq('id', task.id);
       
@@ -330,7 +371,10 @@ export class TaskService {
         .eq('id', id)
         .single();
       
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Error fetching task for status update:', fetchError);
+        return false;
+      }
       
       // Data to update
       const updateData: Record<string, any> = { status };
@@ -349,7 +393,10 @@ export class TaskService {
         .update(updateData)
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating task status:', error);
+        return false;
+      }
       
       // Create notification for status change if status actually changed
       if (currentTask && currentTask.status !== status) {

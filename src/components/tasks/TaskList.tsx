@@ -44,6 +44,11 @@ const TaskList: React.FC<TaskListProps> = ({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const { toast } = useToast();
   
+  // Helper function to safely check if an assignedTo is an object with an ID
+  const isAssignedToObject = (assigned: any): assigned is { id: string; name: string; initials?: string; avatar?: string } => {
+    return typeof assigned === 'object' && assigned !== null && 'id' in assigned;
+  };
+  
   // Process all unique tags from tasks
   const availableTags = useMemo(() => {
     const tagSet = new Set<string>();
@@ -81,7 +86,13 @@ const TaskList: React.FC<TaskListProps> = ({
       
       // Assignee filter
       if (filters.assignedTo && filters.assignedTo.length > 0) {
-        if (!task.assignedTo || !filters.assignedTo.includes(task.assignedTo.id)) {
+        if (!task.assignedTo) return false;
+        
+        const assignedId = isAssignedToObject(task.assignedTo) 
+          ? task.assignedTo.id 
+          : task.assignedTo;
+          
+        if (!filters.assignedTo.includes(assignedId)) {
           return false;
         }
       }

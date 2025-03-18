@@ -30,7 +30,10 @@ const TeamAssignmentFields: React.FC<TeamAssignmentFieldsProps> = ({ form, teams
           render={({ field }) => (
             <FormItem>
               <FormLabel>Team</FormLabel>
-              <Select value={field.value || ""} onValueChange={field.onChange}>
+              <Select 
+                value={field.value || ""} 
+                onValueChange={(value) => field.onChange(value || undefined)}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select team" />
@@ -60,7 +63,10 @@ const TeamAssignmentFields: React.FC<TeamAssignmentFieldsProps> = ({ form, teams
           render={({ field }) => (
             <FormItem>
               <FormLabel>Assign To</FormLabel>
-              <Select value={field.value || ""} onValueChange={field.onChange}>
+              <Select 
+                value={field.value || ""} 
+                onValueChange={(value) => field.onChange(value || undefined)}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select team member" />

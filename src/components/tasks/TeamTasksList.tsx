@@ -35,12 +35,31 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
   const fetchTeamTasks = async () => {
     setLoading(true);
     try {
+      // First check if we need to add the assigned_to column to the tasks table
+      const { data: columnCheck, error: columnError } = await supabase
+        .from('tasks')
+        .select('assigned_to')
+        .limit(1);
+      
+      // If the column doesn't exist, show an error and don't proceed
+      if (columnError && columnError.message.includes("column 'assigned_to' does not exist")) {
+        console.error('Error: assigned_to column is missing from tasks table');
+        toast.error('Database schema error: Please add the assigned_to column to the tasks table');
+        setLoading(false);
+        return;
+      }
+
       const { data: teamTasksData, error: teamTasksError } = await supabase
         .from('team_tasks')
         .select('task_id')
         .eq('team_id', teamId);
 
-      if (teamTasksError) throw teamTasksError;
+      if (teamTasksError) {
+        console.error('Error fetching team task relationships:', teamTasksError);
+        toast.error('Failed to load team task relationships');
+        setLoading(false);
+        return;
+      }
 
       if (!teamTasksData || teamTasksData.length === 0) {
         setTasks([]);
@@ -54,7 +73,12 @@ const TeamTasksList: React.FC<TeamTasksListProps> = ({ teamId }) => {
         .select('*, assigned_to')
         .in('id', taskIds);
 
-      if (tasksError) throw tasksError;
+      if (tasksError) {
+        console.error('Error fetching tasks:', tasksError);
+        toast.error('Failed to load team tasks');
+        setLoading(false);
+        return;
+      }
 
       if (tasksData) {
         const formattedTasks: Task[] = tasksData.map(task => ({

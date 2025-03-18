@@ -78,9 +78,21 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
     const tags = data.tags ? data.tags.split(',').map((tag: string) => tag.trim()) : [];
     
     // Find the assigned team member if there's an assignedTo value
-    const assignedTeamMember = data.assignedTo 
-      ? teamMembers.find(m => m.id === data.assignedTo) 
-      : undefined;
+    let assignedTo: string | { id: string; name: string; initials?: string; avatar?: string } | undefined = undefined;
+    
+    if (data.assignedTo) {
+      const assignedMember = teamMembers.find(m => m.id === data.assignedTo);
+      if (assignedMember) {
+        assignedTo = {
+          id: assignedMember.id,
+          name: assignedMember.name,
+          initials: assignedMember.initials,
+          avatar: assignedMember.avatar
+        };
+      } else {
+        assignedTo = data.assignedTo;
+      }
+    }
     
     const updatedTask: Task = {
       ...task,
@@ -96,12 +108,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
       notificationEmail: data.emailNotification ? data.notificationEmail : undefined,
       progress: data.progress,
       tags: tags.length > 0 ? tags : undefined,
-      assignedTo: assignedTeamMember ? {
-        id: assignedTeamMember.id,
-        name: assignedTeamMember.name,
-        initials: assignedTeamMember.initials,
-        avatar: assignedTeamMember.avatar
-      } : data.assignedTo || undefined,
+      assignedTo: assignedTo,
       teamId: data.teamId || undefined,
       // SMART task fields
       specific: data.specific,
