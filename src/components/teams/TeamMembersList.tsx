@@ -1,40 +1,11 @@
 
 import React, { useState } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { PenSquare, Trash2, ShieldAlert, UserMinus, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { TeamService } from '@/services/TeamService';
 import { useToast } from '@/hooks/use-toast';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-
-interface TeamMember {
-  id: string;
-  user_id: string;
-  team_id: string;
-  role: 'admin' | 'member';
-  joined_at: string;
-  profile?: {
-    first_name: string | null;
-    last_name: string | null;
-    avatar_url: string | null;
-  };
-}
+import { TeamMember } from '@/services/team/types';
+import TeamMemberListItem from './TeamMemberListItem';
+import RemoveMemberDialog from './RemoveMemberDialog';
 
 interface TeamMembersListProps {
   teamId: string;
@@ -124,96 +95,25 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
 
   return (
     <div className="space-y-1">
-      {members.map((member) => {
-        const isCurrentUser = member.user_id === user?.id;
-        const memberName = `${member.profile?.first_name || ''} ${member.profile?.last_name || ''}`.trim() || 'Unknown User';
-        const initials = memberName !== 'Unknown User'
-          ? `${member.profile?.first_name?.[0] || ''}${member.profile?.last_name?.[0] || ''}`.toUpperCase()
-          : 'UN';
-        
-        return (
-          <div key={member.id} className="flex items-center justify-between py-3 px-4 border-b last:border-0">
-            <div className="flex items-center space-x-3">
-              <Avatar>
-                <AvatarImage src={member.profile?.avatar_url || undefined} />
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="font-medium">{memberName}</div>
-                <div className="text-sm text-muted-foreground flex items-center">
-                  {member.role === 'admin' ? (
-                    <>
-                      <ShieldAlert className="h-3 w-3 mr-1 text-primary" />
-                      Admin
-                    </>
-                  ) : (
-                    'Member'
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            {isCurrentUserAdmin && !isCurrentUser && (
-              <div className="flex items-center space-x-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <PenSquare className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => handleRoleChange(member.user_id, 'admin')}
-                      disabled={member.role === 'admin'}
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      Make Admin
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleRoleChange(member.user_id, 'member')}
-                      disabled={member.role === 'member'}
-                    >
-                      <UserMinus className="h-4 w-4 mr-2" />
-                      Remove Admin
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => {
-                    setMemberToRemove(member);
-                    setOpenRemoveDialog(true);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {members.map((member) => (
+        <TeamMemberListItem
+          key={member.id}
+          member={member}
+          isCurrentUser={member.user_id === user?.id}
+          isCurrentUserAdmin={isCurrentUserAdmin}
+          onRemoveMember={(member) => {
+            setMemberToRemove(member);
+            setOpenRemoveDialog(true);
+          }}
+          onRoleChange={handleRoleChange}
+        />
+      ))}
       
-      <AlertDialog open={openRemoveDialog} onOpenChange={setOpenRemoveDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove this team member? They will no longer have access to this team's tasks and conversations.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleRemoveMember}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <RemoveMemberDialog
+        open={openRemoveDialog}
+        onOpenChange={setOpenRemoveDialog}
+        onConfirm={handleRemoveMember}
+      />
     </div>
   );
 };
