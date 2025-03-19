@@ -117,4 +117,20 @@ export class NotificationCore {
       return false;
     }
   }
+
+  static async clearAllNotifications(userId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (error) throw error;
+      
+      return true;
+    } catch (error) {
+      console.error('Error clearing all notifications:', error);
+      return false;
+    }
+  }
 }

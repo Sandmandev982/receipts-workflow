@@ -10,7 +10,7 @@ import type { NotificationParams, NotificationFetchOptions } from './notificatio
 export class NotificationService {
   // Core notification methods
   static createNotification = NotificationCore.createNotification;
-  static fetchNotifications = NotificationCore.fetchNotifications;
+  static fetchNotifications = NotificationCore.getNotifications;
   static markAsRead = NotificationCore.markAsRead;
   static markAllAsRead = NotificationCore.markAllAsRead;
   static deleteNotification = NotificationCore.deleteNotification;
