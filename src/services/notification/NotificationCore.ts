@@ -1,8 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
-// Define the NotificationParams interface directly here
-// This avoids circular imports with other modules
+// Define the notification types directly here to avoid circular dependencies
 export interface NotificationParams {
   userId: string;
   title: string;

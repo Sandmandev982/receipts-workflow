@@ -13,19 +13,19 @@ import { useAuth } from '@/hooks/useAuth';
 import { TeamService } from '@/services/TeamService';
 import { useToast } from '@/hooks/use-toast';
 
-// Define a simplified interface for creating notifications directly
+// Define a completely standalone interface for creating notifications
 // Avoid importing from NotificationCore to prevent circular dependencies
-interface SimpleNotificationParams {
+interface TeamInviteNotification {
   userId: string;
   title: string;
   message: string;
   teamId?: string;
-  type?: 'team' | 'system';
+  type?: 'team';
   actionUrl?: string;
 }
 
-// Function to create notification without causing circular dependencies
-async function createTeamNotification(params: SimpleNotificationParams) {
+// Standalone function to create team invite notifications
+async function createTeamInviteNotification(params: TeamInviteNotification) {
   try {
     const { data, error } = await supabase
       .from('notifications')
@@ -45,7 +45,7 @@ async function createTeamNotification(params: SimpleNotificationParams) {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error creating notification:', error);
+    console.error('Error creating team invite notification:', error);
     return null;
   }
 }
@@ -113,8 +113,8 @@ const TeamInviteForm: React.FC<TeamInviteFormProps> = ({ teamId, teamName, onInv
       const success = await TeamService.addTeamMember(teamId, userData.id);
       
       if (success) {
-        // Create notification directly using our local function instead of NotificationCore
-        await createTeamNotification({
+        // Create notification using our local function - no imports from external notification modules
+        await createTeamInviteNotification({
           userId: userData.id,
           title: 'Team Invitation',
           message: `${inviterName} has invited you to join ${teamName}`,

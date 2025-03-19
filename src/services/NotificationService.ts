@@ -2,7 +2,7 @@
 import { NotificationCore } from './notification/NotificationCore';
 import { TaskNotifications } from './notification/TaskNotifications';
 import { TeamNotifications } from './notification/TeamNotifications';
-import { NotificationParams, NotificationFetchOptions } from './notification/NotificationTypes';
+import type { NotificationParams, NotificationFetchOptions } from './notification/NotificationTypes';
 
 /**
  * Main notification service that exposes all notification functionality
