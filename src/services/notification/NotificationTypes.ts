@@ -39,6 +39,8 @@ export interface NotificationCreateParams {
   teamId?: string;
   taskId?: string;
   actionUrl?: string;
+  sendEmail?: boolean;
+  emailAddress?: string;
 }
 
 export interface NotificationFetchOptions {

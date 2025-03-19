@@ -13,40 +13,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { TeamService } from '@/services/TeamService';
 import { useToast } from '@/hooks/use-toast';
 
-// Define a completely isolated interface for team invites
-interface TeamInviteData {
-  userId: string;
-  title: string;
-  message: string;
-  teamId: string;
-  type: 'team';
-  actionUrl: string;
-}
-
-// Standalone function to create team invite notifications directly in the database
-async function createDirectTeamInviteNotification(data: TeamInviteData) {
-  try {
-    const { error } = await supabase
-      .from('notifications')
-      .insert({
-        user_id: data.userId,
-        title: data.title,
-        message: data.message,
-        team_id: data.teamId,
-        type: data.type,
-        action_url: data.actionUrl,
-        read: false,
-        priority: 'normal'
-      });
-
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error('Error creating team invite notification:', error);
-    return false;
-  }
-}
-
 const inviteFormSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' })
 });
@@ -57,6 +23,35 @@ interface TeamInviteFormProps {
   teamId: string;
   teamName: string;
   onInviteSuccess?: () => void;
+}
+
+// Simplified function to create team invite notifications directly
+async function createTeamInviteNotification(
+  userId: string,
+  teamId: string,
+  teamName: string,
+  inviterName: string
+) {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        title: 'Team Invitation',
+        message: `${inviterName} has invited you to join ${teamName}`,
+        team_id: teamId,
+        type: 'team',
+        action_url: '/teams',
+        read: false,
+        priority: 'normal'
+      });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error creating team invite notification:', error);
+    return false;
+  }
 }
 
 const TeamInviteForm: React.FC<TeamInviteFormProps> = ({ teamId, teamName, onInviteSuccess }) => {
@@ -110,15 +105,13 @@ const TeamInviteForm: React.FC<TeamInviteFormProps> = ({ teamId, teamName, onInv
       const success = await TeamService.addTeamMember(teamId, userData.id);
       
       if (success) {
-        // Create notification directly using our isolated function
-        await createDirectTeamInviteNotification({
-          userId: userData.id,
-          title: 'Team Invitation',
-          message: `${inviterName} has invited you to join ${teamName}`,
-          type: 'team',
-          teamId: teamId,
-          actionUrl: '/teams'
-        });
+        // Create notification using our simplified function
+        await createTeamInviteNotification(
+          userData.id,
+          teamId,
+          teamName,
+          inviterName
+        );
         
         toast({
           title: 'Invitation sent',
