@@ -13,40 +13,39 @@ import { useAuth } from '@/hooks/useAuth';
 import { TeamService } from '@/services/TeamService';
 import { useToast } from '@/hooks/use-toast';
 
-// Define a completely standalone interface for creating notifications
-// Avoid importing from NotificationCore to prevent circular dependencies
-interface TeamInviteNotification {
+// Define a completely isolated interface for team invites
+// This avoids any dependency on the notification system
+interface TeamInviteData {
   userId: string;
   title: string;
   message: string;
-  teamId?: string;
-  type?: 'team';
-  actionUrl?: string;
+  teamId: string;
+  type: 'team';
+  actionUrl: string;
 }
 
-// Standalone function to create team invite notifications
-async function createTeamInviteNotification(params: TeamInviteNotification) {
+// Standalone function to create team invite notifications directly in the database
+// This completely avoids any imports from the notification system
+async function createDirectTeamInviteNotification(data: TeamInviteData) {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('notifications')
       .insert({
-        user_id: params.userId,
-        title: params.title,
-        message: params.message,
-        team_id: params.teamId,
-        type: params.type || 'team',
-        action_url: params.actionUrl,
+        user_id: data.userId,
+        title: data.title,
+        message: data.message,
+        team_id: data.teamId,
+        type: data.type,
+        action_url: data.actionUrl,
         read: false,
         priority: 'normal'
-      })
-      .select()
-      .single();
+      });
 
     if (error) throw error;
-    return data;
+    return true;
   } catch (error) {
     console.error('Error creating team invite notification:', error);
-    return null;
+    return false;
   }
 }
 
@@ -113,8 +112,9 @@ const TeamInviteForm: React.FC<TeamInviteFormProps> = ({ teamId, teamName, onInv
       const success = await TeamService.addTeamMember(teamId, userData.id);
       
       if (success) {
-        // Create notification using our local function - no imports from external notification modules
-        await createTeamInviteNotification({
+        // Create notification directly using our isolated function
+        // This completely avoids any circular dependencies
+        await createDirectTeamInviteNotification({
           userId: userData.id,
           title: 'Team Invitation',
           message: `${inviterName} has invited you to join ${teamName}`,
