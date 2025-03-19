@@ -14,7 +14,6 @@ import { TeamService } from '@/services/TeamService';
 import { useToast } from '@/hooks/use-toast';
 
 // Define a completely isolated interface for team invites
-// This avoids any dependency on the notification system
 interface TeamInviteData {
   userId: string;
   title: string;
@@ -25,7 +24,6 @@ interface TeamInviteData {
 }
 
 // Standalone function to create team invite notifications directly in the database
-// This completely avoids any imports from the notification system
 async function createDirectTeamInviteNotification(data: TeamInviteData) {
   try {
     const { error } = await supabase
@@ -113,7 +111,6 @@ const TeamInviteForm: React.FC<TeamInviteFormProps> = ({ teamId, teamName, onInv
       
       if (success) {
         // Create notification directly using our isolated function
-        // This completely avoids any circular dependencies
         await createDirectTeamInviteNotification({
           userId: userData.id,
           title: 'Team Invitation',

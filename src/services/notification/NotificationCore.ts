@@ -1,120 +1,58 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import type { NotificationParams, NotificationFetchOptions } from './NotificationTypes';
+import { 
+  Notification, 
+  NotificationCreateParams,
+  NotificationPriority,
+  NotificationStatus,
+  NotificationType
+} from './NotificationTypes';
 
-/**
- * Core notification functions for creating and managing notifications
- */
 export class NotificationCore {
-  /**
-   * Create a new notification in the database with optional email notification
-   */
-  static async createNotification(params: NotificationParams) {
-    const { 
-      userId, 
-      title, 
-      message, 
-      taskId, 
-      teamId, 
-      type = 'system', 
-      actionUrl,
-      priority = 'normal',
-      sendEmail = false,
-      emailAddress
-    } = params;
-
+  static async getNotifications(userId: string, limit = 20): Promise<Notification[]> {
     try {
-      // Create in-app notification
       const { data, error } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: userId,
-          title,
-          message,
-          task_id: taskId,
-          team_id: teamId,
-          type,
-          action_url: actionUrl,
-          read: false,
-          priority
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      // If email notification is requested, send it using Supabase edge function
-      if (sendEmail && emailAddress) {
-        try {
-          // Use a simplified approach to avoid type errors
-          const emailParams = {
-            email: emailAddress,
-            subject: title,
-            message: message,
-            taskId,
-            actionUrl
-          };
-          
-          await supabase.functions.invoke('send-notification-email', {
-            body: emailParams,
-          });
-        } catch (emailError) {
-          console.error('Error sending email notification:', emailError);
-        }
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('Error creating notification:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Fetch notifications for a user with optional filters
-   */
-  static async fetchNotifications(userId: string, options?: NotificationFetchOptions) {
-    try {
-      let query = supabase
         .from('notifications')
         .select('*')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-      
-      // Apply filters based on options
-      if (options?.unreadOnly) {
-        query = query.eq('read', false);
-      }
-      
-      if (options?.type) {
-        query = query.eq('type', options.type);
-      }
-      
-      if (options?.limit) {
-        query = query.limit(options.limit);
-      }
-      
-      const { data, error } = await query;
-
+        .order('created_at', { ascending: false })
+        .limit(limit);
+        
       if (error) throw error;
       
-      return data;
+      return data || [];
     } catch (error) {
       console.error('Error fetching notifications:', error);
       return [];
     }
   }
 
-  /**
-   * Mark a notification as read
-   */
-  static async markAsRead(notificationId: string) {
+  static async getUnreadCount(userId: string): Promise<number> {
+    try {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('read', false);
+        
+      if (error) throw error;
+      
+      return count || 0;
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+      return 0;
+    }
+  }
+
+  static async markAsRead(notificationId: string): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId);
-
+        
       if (error) throw error;
+      
       return true;
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -122,18 +60,16 @@ export class NotificationCore {
     }
   }
 
-  /**
-   * Mark all notifications as read for a user
-   */
-  static async markAllAsRead(userId: string) {
+  static async markAllAsRead(userId: string): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('user_id', userId)
         .eq('read', false);
-
+        
       if (error) throw error;
+      
       return true;
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
@@ -141,38 +77,43 @@ export class NotificationCore {
     }
   }
 
-  /**
-   * Delete a notification
-   */
-  static async deleteNotification(notificationId: string) {
+  static async createNotification(params: NotificationCreateParams): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: params.userId,
+          title: params.title,
+          message: params.message,
+          type: params.type,
+          priority: params.priority || 'normal',
+          team_id: params.teamId,
+          task_id: params.taskId,
+          action_url: params.actionUrl,
+          read: false
+        });
+        
+      if (error) throw error;
+      
+      return true;
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      return false;
+    }
+  }
+
+  static async deleteNotification(notificationId: string): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('notifications')
         .delete()
         .eq('id', notificationId);
-
+        
       if (error) throw error;
+      
       return true;
     } catch (error) {
       console.error('Error deleting notification:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Clear all notifications for a user
-   */
-  static async clearAllNotifications(userId: string) {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('user_id', userId);
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('Error clearing all notifications:', error);
       return false;
     }
   }
